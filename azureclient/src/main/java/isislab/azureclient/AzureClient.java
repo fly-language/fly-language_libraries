@@ -484,6 +484,30 @@ public class AzureClient {
 		return dbEndpoint;
 	}
 	
+	public String getDBEndpointNoSQL(String resourceGroups, String instance) throws IOException {
+		String token = getOAuthToken();
+		
+		URL url = new URL("https://management.azure.com/subscriptions/" + subscriptionId
+				+ "/resourceGroups/" + resourceGroups + "/providers/Microsoft.DocumentDB/databaseAccounts/"
+				+ instance + "/listConnectionStrings?api-version=2021-03-01-preview");
+		HttpURLConnection connection = (HttpURLConnection) url.openConnection();	
+				
+		// Set connections properties
+		connection.setDoOutput(true);
+		connection.setDoInput(true);
+		connection.setRequestMethod("POST");
+		connection.setRequestProperty("Authorization", "Bearer " + token);
+		connection.getOutputStream().close();
+		
+		Gson gson = new GsonBuilder().create();
+		JsonReader jsonReader = gson.newJsonReader(new InputStreamReader(connection.getInputStream()));
+		JsonObject jsonObj = new JsonParser().parse(jsonReader).getAsJsonObject();
+		
+		String dbEndpoint = jsonObj.getAsJsonArray("connectionStrings").get(0).getAsJsonObject().get("connectionString").getAsString();
+		
+		return dbEndpoint;
+	}
+	
 	//VM Cluster handling methods
 	public void VMClusterInit() throws InvalidKeyException, URISyntaxException {
 		
