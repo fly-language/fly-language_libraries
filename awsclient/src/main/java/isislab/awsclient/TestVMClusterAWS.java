@@ -12,6 +12,7 @@ import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 import com.amazonaws.services.sqs.model.CreateQueueRequest;
 import com.amazonaws.services.sqs.model.GetQueueAttributesRequest;
 import com.amazonaws.services.sqs.model.Message;
+import com.amazonaws.services.sqs.model.QueueAttributeName;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 
@@ -36,10 +37,10 @@ public class TestVMClusterAWS {
 		String region = "eu-west-2";
 		String instance_type = "t2.micro";
 		String purchasingOption = "on-demand";
-		boolean persistent = true;
+		boolean persistent = false;
 		int vmCount = 2;
 		
-		int smpThreadCount = 4;
+		int smpThreadCount = 2;
 		
 		__sqs_aws.createQueue(new CreateQueueRequest("ch-termination-"+__id_execution));
 		String terminationQueue = __sqs_aws.getQueueUrl("ch-termination-"+__id_execution).getQueueUrl();
@@ -50,40 +51,49 @@ public class TestVMClusterAWS {
 		awsClient.zipAndUploadCurrentProject();
 		
 		//Run a cluster of VMs 	
-		int vmsCreatedCount = awsClient.launchVMCluster(instance_type, purchasingOption, persistent,5);
+		int vmsCreatedCount = awsClient.launchVMCluster(instance_type, purchasingOption, persistent,vmCount);
 		
 		if ( vmsCreatedCount != 0) {
-			//VM CLuster already existent
 			System.out.print("\n\u27A4 Waiting for virtual machines boot script to complete...");
-			while ( Long.parseLong(__sqs_aws.getQueueAttributes(new GetQueueAttributesRequest(terminationQueue)).getAttributes().get("ApproximateNumberOfMessages")) != vmsCreatedCount);
-			System.out.println("Done");
-		}else if( vmsCreatedCount != vmCount){
-			awsClient.downloadFLYProjectonVMCluster();
-			
-			System.out.print("\n\u27A4 Waiting for download project on VM CLuster to complete...");
-			while ( Long.parseLong(__sqs_aws.getQueueAttributes(new GetQueueAttributesRequest(terminationQueue)).getAttributes().get("ApproximateNumberOfMessages")) != (vmCount+vmsCreatedCount));
+			while ( Long.parseLong(__sqs_aws.getQueueAttributes(new GetQueueAttributesRequest().withQueueUrl(terminationQueue)
+											.withAttributeNames(QueueAttributeName.ApproximateNumberOfMessages.toString())).getAttributes().get("ApproximateNumberOfMessages")) != vmsCreatedCount);
 			System.out.println("Done");
 		}
-				
-		//Project Building
-		awsClient.buildFLYProjectOnVMCluster();
-		
-		System.out.print("\n\u27A4 Waiting for building project on VM CLuster to complete...");
-		while ( Long.parseLong(__sqs_aws.getQueueAttributes(new GetQueueAttributesRequest(terminationQueue)).getAttributes().get("ApproximateNumberOfMessages")) != ( (vmCount*2)+vmsCreatedCount));
+		if(vmsCreatedCount != vmCount){
+			if ( vmsCreatedCount > 0) awsClient.downloadFLYProjectonVMCluster();
+			
+			System.out.print("\n\u27A4 Waiting for download project on VM CLuster to complete...");
+			while ( Long.parseLong(__sqs_aws.getQueueAttributes(new GetQueueAttributesRequest().withQueueUrl(terminationQueue)
+											.withAttributeNames(QueueAttributeName.ApproximateNumberOfMessages.toString())).getAttributes().get("ApproximateNumberOfMessages")) != (vmCount+vmsCreatedCount));
+		}
 		System.out.println("Done");
 		
+		String mainClass = "sum";
+		//Project Building
+		awsClient.buildFLYProjectOnVMCluster(mainClass);
 		
+		System.out.print("\n\u27A4 Waiting for building project on VM CLuster to complete...");
+		if(vmsCreatedCount != vmCount){
+			while ( Long.parseLong(__sqs_aws.getQueueAttributes(new GetQueueAttributesRequest().withQueueUrl(terminationQueue)
+											.withAttributeNames(QueueAttributeName.ApproximateNumberOfMessages.toString())).getAttributes().get("ApproximateNumberOfMessages")) != ( (vmCount*2)+vmsCreatedCount));
+		} else {
+			while ( Long.parseLong(__sqs_aws.getQueueAttributes(new GetQueueAttributesRequest().withQueueUrl(terminationQueue)
+											.withAttributeNames(QueueAttributeName.ApproximateNumberOfMessages.toString())).getAttributes().get("ApproximateNumberOfMessages")) != (vmCount*2));
+		}
+		System.out.println("Done");
+		
+		int numberOfFunctions = 100;
+
 		//Workload uniform splitting
-		int[] dimPortions = new int[5]; //size of each vm's portion
-		int[] displ = new int[5]; // start index of each vm's portion
+		int[] dimPortions = new int[vmCount]; //size of each vm's portion
+		int[] displ = new int[vmCount]; // start index of each vm's portion
 		int offset = 0;
-		for(int i=0; i<5;i++){
-		            dimPortions[i] = (100 / 5) +
-		                            ((i < (100 % 5)) ? 1 : 0);
+		for(int i=0; i<vmCount;i++){
+		            dimPortions[i] = (numberOfFunctions / vmCount) +
+		                            ((i < (numberOfFunctions % vmCount)) ? 1 : 0);
 		            displ[i] = offset;
 		            offset += dimPortions[i];
 		}
-		int numberOfFunctions = 100;
 		
 		//results queue
 		__sqs_aws.createQueue(new CreateQueueRequest("ch-"+__id_execution));
@@ -97,7 +107,6 @@ public class TestVMClusterAWS {
 						ReceiveMessageResult __res = __sqs_aws.receiveMessage(__recmsg);
 						for(Message msg : __res.getMessages()) { 
 							ch.put(msg.getBody());
-							System.out.println(msg.getBody()+ " is addedd to local queue of results");
 							__sqs_aws.deleteMessage(__sqs_aws.getQueueUrl("ch-"+__id_execution).getQueueUrl(), msg.getReceiptHandle());
 						}
 					}
@@ -117,7 +126,7 @@ public class TestVMClusterAWS {
 		__wait_on_ch = false;
 		System.out.println("Done");
 				
-		estimation();
+		totalSum();
 		
 		awsClient.deleteResourcesAllocated();
 		__thread_pool_smp.shutdown();
@@ -142,6 +151,21 @@ public class TestVMClusterAWS {
 		}
 		
 		System.out.println("pi estimation: " + (sum * 4.0) / crt);
+		return null;
+		}
+	
+	protected static  Object totalSum()throws Exception{
+		Integer sum = 0;
+		
+		for(int i=0;i<100;i++){
+			
+			{
+				
+				sum += Integer.parseInt(ch.take().toString());
+			}
+		}
+		
+		System.out.println("sum: " + sum);
 		return null;
 		}
 

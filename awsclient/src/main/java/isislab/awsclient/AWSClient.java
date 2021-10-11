@@ -62,8 +62,8 @@ public class AWSClient {
 		 runCommandHandler.downloadExecutionFileOnVMCluster(this.bucketName, this.terminationQueueUrl);
 	 }
 	 
-	 public void buildFLYProjectOnVMCluster() throws InterruptedException, ExecutionException {
-		 runCommandHandler.buildFLYProjectOnVMCluster(this.bucketName, this.projectID, this.terminationQueueUrl);
+	 public void buildFLYProjectOnVMCluster(String mainClass) throws InterruptedException, ExecutionException {
+		 runCommandHandler.buildFLYProjectOnVMCluster(this.bucketName, this.projectID, this.terminationQueueUrl, mainClass);
 	 }
 	 
 	 public void executeFLYonVMCluster(int[] dimPortions, int[] displ, int numberOfFunctions, long idExec) throws InterruptedException, ExecutionException {

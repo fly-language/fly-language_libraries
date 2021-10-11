@@ -48,13 +48,13 @@ public class RunCommandHandler {
 		}
 	}
 	
-	protected void buildFLYProjectOnVMCluster(String bucketName, String projectName, String queueUrl) throws InterruptedException, ExecutionException {
+	protected void buildFLYProjectOnVMCluster(String bucketName, String projectName, String queueUrl, String mainClass) throws InterruptedException, ExecutionException {
 
 		String docJarName = "fly_building";
 		
 	    //Create the document for the command
 		try {
-			createDocumentMethod(getDocumentContent2(projectName, queueUrl), docJarName);
+			createDocumentMethod(getDocumentContent2(projectName, queueUrl, mainClass), docJarName);
 	    }
 	    catch (IOException e) {
 	      e.printStackTrace();
@@ -136,7 +136,7 @@ public class RunCommandHandler {
 	}
 	
 	//Command to run "mvn install" on the FLY project to execute
-	private static String getDocumentContent2(String projectName, String queueUrl) throws IOException {
+	private static String getDocumentContent2(String projectName, String queueUrl, String mainClass) throws IOException {
 		return "---" + "\n"
 			+ "schemaVersion: '2.2'" + "\n"
 			+ "description: Building and JAR generation." + "\n"
@@ -149,7 +149,7 @@ public class RunCommandHandler {
 			+ "    - cd ../../../../home/ubuntu"+ "\n"
 			+ "    - unzip "+projectName+ "\n"
 			+ "    - cd "+projectName+ "\n"
-			+ "    - mvn -T 1C install -Dmaven.test.skip -DskipTests -Dapp.mainClass="+projectName+"SingleVM"+ "\n"
+			+ "    - mvn -T 1C install -Dmaven.test.skip -DskipTests -Dapp.mainClass="+mainClass+"SingleVM"+ "\n"
 			+ "    - aws sqs send-message --queue-url "+queueUrl+" --message-body buildingTerminated"+ "\n";
 	}
 
