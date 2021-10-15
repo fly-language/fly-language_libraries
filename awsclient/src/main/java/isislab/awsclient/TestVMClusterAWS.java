@@ -114,9 +114,9 @@ public class TestVMClusterAWS {
 				}
 			});
 		}
-						
-		awsClient.executeFLYonVMCluster(dimPortions,
-										displ,
+		
+		String objectInputString = "test";
+		awsClient.executeFLYonVMCluster(objectInputString,
 										numberOfFunctions,
 										__id_execution);
 										

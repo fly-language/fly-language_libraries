@@ -68,14 +68,15 @@ public class RunCommandHandler {
 		}
 	}
 
-	protected void executeFLYonVMCluster(int[] dimPortions, int[] displ, int numberOfFunctions, String bucketName, 
+	protected void executeFLYonVMCluster(String objectInputString, int numberOfFunctions, String bucketName, 
 			String projectName, long idExec, String queueUrl) throws InterruptedException, ExecutionException {
 
 		String docExecutionName = "fly_execution";
 		
 	    //Create the document for the command
 		try {
-			for (int i=0; i < this.virtualMachines.size(); i++)	createDocumentMethod(getDocumentContent3(projectName,bucketName,dimPortions[i], displ[i], idExec, queueUrl), 
+			for (int i=0; i < numberOfFunctions; i++)	
+				createDocumentMethod(getDocumentContent3(projectName,bucketName,objectInputString, idExec, queueUrl), 
 					docExecutionName+this.virtualMachines.get(i).getInstanceId());
 	    }
 	    catch (IOException e) {
@@ -84,9 +85,10 @@ public class RunCommandHandler {
 		
 		//FLY execution
 		System.out.println("\n\u27A4 Fly execution...");		
-		for (Instance vm : this.virtualMachines) {
-			System.out.println("Running on VM "+vm.getInstanceId());
-			executeCommand(vm.getInstanceId(), bucketName, docExecutionName+vm.getInstanceId(), "execution");
+		for (int i=0; i< numberOfFunctions; i++) {
+			
+			System.out.println("Running on VM "+this.virtualMachines.get(i).getInstanceId());
+			executeCommand(this.virtualMachines.get(i).getInstanceId(), bucketName, docExecutionName+this.virtualMachines.get(i).getInstanceId(), "execution");
 		}
 	}
 	
@@ -154,7 +156,7 @@ public class RunCommandHandler {
 	}
 
 	//Run FLY execution
-	private static String getDocumentContent3(String projectName, String bucketName, int dimPortion, int displ, long idExec, String queueUrl) throws IOException {
+	private static String getDocumentContent3(String projectName, String bucketName, String objectInputString, long idExec, String queueUrl) throws IOException {
 		return "---" + "\n"
 			+ "schemaVersion: '2.2'" + "\n"
 			+ "description: Execute FLY application." + "\n"
@@ -168,7 +170,7 @@ public class RunCommandHandler {
 			+ "    - chmod -R 777 "+projectName+ "\n"
 			+ "    - mv "+projectName+"/src-gen ."+ "\n"
 			+ "    - mv "+projectName+"/target/"+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar ."+ "\n"
-			+ "    - java -jar "+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar "+dimPortion+" "+displ+" "+idExec+ "\n"
+			+ "    - java -jar "+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar "+objectInputString+" "+idExec+ "\n"
 			+ "    - rm -rf ..?* .[!.]* *"+ "\n";
 	}
 	
