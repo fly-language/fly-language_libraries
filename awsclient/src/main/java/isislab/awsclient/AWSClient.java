@@ -1,5 +1,6 @@
 package isislab.awsclient;
 
+import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
 
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
@@ -66,8 +67,8 @@ public class AWSClient {
 		 runCommandHandler.buildFLYProjectOnVMCluster(this.bucketName, this.projectID, this.terminationQueueUrl, mainClass);
 	 }
 	 
-	 public void executeFLYonVMCluster(String objectInputString, int numberOfFunctions, long idExec) throws InterruptedException, ExecutionException {
-		 runCommandHandler.executeFLYonVMCluster(objectInputString, numberOfFunctions, this.bucketName, this.projectID, idExec, this.terminationQueueUrl);
+	 public void executeFLYonVMCluster(ArrayList<String> objectInputsString, int numberOfFunctions, long idExec) throws InterruptedException, ExecutionException {
+		 runCommandHandler.executeFLYonVMCluster(objectInputsString, numberOfFunctions, this.bucketName, this.projectID, idExec, this.terminationQueueUrl);
 	 }
 	
 	 public void deleteResourcesAllocated() {

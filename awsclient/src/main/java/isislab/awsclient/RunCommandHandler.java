@@ -68,7 +68,7 @@ public class RunCommandHandler {
 		}
 	}
 
-	protected void executeFLYonVMCluster(String objectInputString, int numberOfFunctions, String bucketName, 
+	protected void executeFLYonVMCluster(ArrayList<String> objectInputsString, int numberOfFunctions, String bucketName, 
 			String projectName, long idExec, String queueUrl) throws InterruptedException, ExecutionException {
 
 		String docExecutionName = "fly_execution";
@@ -76,7 +76,7 @@ public class RunCommandHandler {
 	    //Create the document for the command
 		try {
 			for (int i=0; i < numberOfFunctions; i++)	
-				createDocumentMethod(getDocumentContent3(projectName,bucketName,objectInputString, idExec, queueUrl), 
+				createDocumentMethod(getDocumentContent3(projectName,bucketName,objectInputsString.get(i), idExec, queueUrl), 
 					docExecutionName+this.virtualMachines.get(i).getInstanceId());
 	    }
 	    catch (IOException e) {

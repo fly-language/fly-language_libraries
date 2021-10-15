@@ -1,5 +1,6 @@
 package isislab.awsclient;
 
+import java.util.ArrayList;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -115,8 +116,8 @@ public class TestVMClusterAWS {
 			});
 		}
 		
-		String objectInputString = "test";
-		awsClient.executeFLYonVMCluster(objectInputString,
+		ArrayList<String> objectInputsString = new ArrayList<String>();
+		awsClient.executeFLYonVMCluster(objectInputsString,
 										numberOfFunctions,
 										__id_execution);
 										
