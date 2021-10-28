@@ -73,10 +73,8 @@ public class S3Handler {
 			BufferedReader p_output2 = new BufferedReader(new InputStreamReader(p.getInputStream()));
 			whereami = p_output2.readLine();
 			whereami = whereami.substring(whereami.lastIndexOf(File.separator) + 1);
-			System.out.println(whereami);
 			
 			//ZIP generation
-			
 			p = Runtime.getRuntime().exec("zip -r "+whereami+".zip ../"+whereami);
 			p.waitFor();
 			

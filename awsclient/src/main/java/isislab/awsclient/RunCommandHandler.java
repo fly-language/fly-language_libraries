@@ -171,7 +171,8 @@ public class RunCommandHandler {
 			+ "    - mv "+projectName+"/src-gen ."+ "\n"
 			+ "    - mv "+projectName+"/target/"+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar ."+ "\n"
 			+ "    - java -jar "+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar "+objectInputString+" "+idExec+ "\n"
-			+ "    - rm -rf ..?* .[!.]* *"+ "\n";
+			+ "    - rm -rf ..?* .[!.]* *"+ "\n" //delete all files (also the hidden ones)
+			+ "    - aws sqs send-message --queue-url "+queueUrl+" --message-body executionTerminated"+ "\n";
 	}
 	
 	//Download necessary files for FLY execution
