@@ -2,7 +2,9 @@ package isislab.awsclient;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import com.amazonaws.services.ec2.model.Instance;
@@ -13,15 +15,19 @@ import com.amazonaws.services.simplesystemsmanagement.model.DocumentIdentifier;
 import com.amazonaws.services.simplesystemsmanagement.model.ListDocumentsRequest;
 import com.amazonaws.services.simplesystemsmanagement.model.ListDocumentsResult;
 import com.amazonaws.services.simplesystemsmanagement.model.SendCommandRequest;
+import com.amazonaws.services.simplesystemsmanagement.model.SendCommandResult;
 
 public class RunCommandHandler {
 	
 	private AWSSimpleSystemsManagement ssm;
+	private S3Handler s3Handler;
 	
 	private List<Instance> virtualMachines;
+	private HashMap<String, String> commandIds = new HashMap<>();
 
-	protected RunCommandHandler(AWSSimpleSystemsManagement ssm) {
+	protected RunCommandHandler(AWSSimpleSystemsManagement ssm, S3Handler s3Handler) {
 		this.ssm = ssm;
+		this.s3Handler = s3Handler;
 	}
 	
 	protected void setVMs(List<Instance> virtualMachines) {
@@ -47,7 +53,7 @@ public class RunCommandHandler {
 			executeCommand(vm.getInstanceId(), bucketName, syncDocName, "downloading");
 		}
 	}
-	
+		
 	protected void buildFLYProjectOnVMCluster(String bucketName, String projectName, String queueUrl, String mainClass) throws InterruptedException, ExecutionException {
 
 		String docJarName = "fly_building";
@@ -111,7 +117,24 @@ public class RunCommandHandler {
 			sendCommandRequest.setOutputS3KeyPrefix("downloadingOutput/");
 		}
 		
-		ssm.sendCommand(sendCommandRequest);
+		SendCommandResult commandResult = ssm.sendCommand(sendCommandRequest);
+	    commandIds.put(commandResult.getCommand().getCommandId(), instanceId);
+	}
+	
+	protected String checkForExecutionErrors(int numberOfFunctions, String bucketName) {
+		
+		String errorOfAllVMs = null;
+		for (Map.Entry<String, String> hm : commandIds.entrySet()) {
+			//Construct the key of eventual "stderr" file
+			String stderrKey = "FLYexecutionOutput/"+hm.getKey()+"/"+hm.getValue()+"/awsrunShellScript/execution/stderr";
+			errorOfAllVMs += "Virtual Machine with instance ID -> "+ hm.getValue() + "\n"; 
+			errorOfAllVMs += s3Handler.getFileContentAsStringIfExistent(bucketName, stderrKey);
+			errorOfAllVMs += "\n";
+			System.out.println(errorOfAllVMs);
+		}
+		
+		if(errorOfAllVMs.contains("Exception")) return errorOfAllVMs;
+		else return null;
 	}
 
 	protected void deleteFLYdocumentsCommand() {

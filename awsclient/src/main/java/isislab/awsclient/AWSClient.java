@@ -43,7 +43,7 @@ public class AWSClient {
 				.build();
 		
 		this.s3Handler = new S3Handler(s3);
-		this.runCommandHandler = new RunCommandHandler(ssm);
+		this.runCommandHandler = new RunCommandHandler(ssm, this.s3Handler);
 		this.ec2Handler = new EC2Handler(ec2, this.runCommandHandler, this.s3Handler);
 		
 		this.terminationQueueUrl = terminationQueueUrl;
@@ -69,6 +69,10 @@ public class AWSClient {
 	 
 	 public void executeFLYonVMCluster(ArrayList<String> objectInputsString, int numberOfFunctions, long idExec) throws InterruptedException, ExecutionException {
 		 runCommandHandler.executeFLYonVMCluster(objectInputsString, numberOfFunctions, this.bucketName, this.projectID, idExec, this.terminationQueueUrl);
+	 }
+	 
+	 public String checkForExecutionErrors(int numberOfFunctions) {
+		 return runCommandHandler.checkForExecutionErrors(numberOfFunctions, this.bucketName);
 	 }
 	
 	 public void deleteResourcesAllocated() {
