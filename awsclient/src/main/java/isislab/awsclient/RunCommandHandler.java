@@ -118,20 +118,21 @@ public class RunCommandHandler {
 		}
 		
 		SendCommandResult commandResult = ssm.sendCommand(sendCommandRequest);
-	    commandIds.put(commandResult.getCommand().getCommandId(), instanceId);
+		if (folderBucketOutput.equals("execution")) {
+			//store info about command id for the next check of errors
+			commandIds.put(commandResult.getCommand().getCommandId(), instanceId);
+		}
 	}
 	
 	protected String checkForExecutionErrors(int numberOfFunctions, String bucketName) {
 		
-		String errorOfAllVMs = null;
+		String errorOfAllVMs = "";
 		for (Map.Entry<String, String> hm : commandIds.entrySet()) {
 			//Construct the key of eventual "stderr" file
 			String stderrKey = "FLYexecutionOutput/"+hm.getKey()+"/"+hm.getValue()+"/awsrunShellScript/execution/stderr";
-			System.out.println(stderrKey);
 			errorOfAllVMs += "Virtual Machine with instance ID -> "+ hm.getValue() + "\n"; 
 			errorOfAllVMs += s3Handler.getFileContentAsStringIfExistent(bucketName, stderrKey);
 			errorOfAllVMs += "\n";
-			System.out.println(errorOfAllVMs);
 		}
 		
 		if(errorOfAllVMs.contains("Exception")) return errorOfAllVMs;
