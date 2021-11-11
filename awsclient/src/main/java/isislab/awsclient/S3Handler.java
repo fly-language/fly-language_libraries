@@ -156,7 +156,7 @@ public class S3Handler {
 	 }
 
 	 protected String getFileContentAsStringIfExistent(String bucketName, String objectKey) {
-		 if (!s3.doesObjectExist(bucketName, objectKey)) {
+		 if (s3.doesObjectExist(bucketName, objectKey)) {
 			 return s3.getObjectAsString(bucketName, objectKey);
 		 }else return null;
 	 }

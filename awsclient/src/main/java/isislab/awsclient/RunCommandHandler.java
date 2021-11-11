@@ -127,6 +127,7 @@ public class RunCommandHandler {
 		for (Map.Entry<String, String> hm : commandIds.entrySet()) {
 			//Construct the key of eventual "stderr" file
 			String stderrKey = "FLYexecutionOutput/"+hm.getKey()+"/"+hm.getValue()+"/awsrunShellScript/execution/stderr";
+			System.out.println(stderrKey);
 			errorOfAllVMs += "Virtual Machine with instance ID -> "+ hm.getValue() + "\n"; 
 			errorOfAllVMs += s3Handler.getFileContentAsStringIfExistent(bucketName, stderrKey);
 			errorOfAllVMs += "\n";
