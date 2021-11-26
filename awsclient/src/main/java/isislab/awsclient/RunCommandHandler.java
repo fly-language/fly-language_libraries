@@ -176,7 +176,7 @@ public class RunCommandHandler {
 			+ "    - cd ../../../../home/ubuntu"+ "\n"
 			+ "    - unzip "+projectName+ "\n"
 			+ "    - cd "+projectName+ "\n"
-			+ "    - mvn -T 1C install -Dmaven.test.skip -DskipTests -Dapp.mainClass="+mainClass+"SingleVM"+ "\n"
+			+ "    - mvn -T 1C install -Dmaven.test.skip -DskipTests -Dapp.mainClass="+mainClass+ "\n"
 			+ "    - aws sqs send-message --queue-url "+queueUrl+" --message-body buildingTerminated"+ "\n";
 	}
 
