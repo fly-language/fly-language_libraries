@@ -74,6 +74,10 @@ public class AWSClient {
 	 public String checkForExecutionErrors(int numberOfFunctions) {
 		 return runCommandHandler.checkForExecutionErrors(numberOfFunctions, this.bucketName);
 	 }
+	 
+	 public void cleanResources() {
+		 runCommandHandler.deleteFLYdocumentsCommand();
+	 }
 	
 	 public void deleteResourcesAllocated() {
 		 ec2Handler.deleteResourcesAllocated(false, this.bucketName);
