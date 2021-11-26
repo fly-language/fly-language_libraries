@@ -140,7 +140,7 @@ public class RunCommandHandler {
 	}
 
 	protected void deleteFLYdocumentsCommand() {
-		
+		System.out.println("I Am inside the metod");
 		List<String> docNameToDelete = new ArrayList<>();
 		String nextToken = null;
 
@@ -156,7 +156,10 @@ public class RunCommandHandler {
 		    nextToken = results.getNextToken();
 	    } while (nextToken != null);
 
+		System.out.println("I Am after the first while -> "+docNameToDelete.toString());
+
 	    for (String docName : docNameToDelete) {
+			System.out.println("I Am inside the delete for");
 			DeleteDocumentRequest deleteDocRequest = new DeleteDocumentRequest().withName(docName);
 			ssm.deleteDocument(deleteDocRequest);
 	    }
