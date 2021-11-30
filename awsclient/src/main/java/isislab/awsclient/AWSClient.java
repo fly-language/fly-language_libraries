@@ -67,12 +67,16 @@ public class AWSClient {
 		 runCommandHandler.buildFLYProjectOnVMCluster(this.bucketName, this.projectID, this.terminationQueueUrl, mainClass);
 	 }
 	 
+	 public String checkBuildingStatus() {
+		 return runCommandHandler.checkBuildingStatus(this.bucketName);
+	 }
+	 
 	 public void executeFLYonVMCluster(ArrayList<String> objectInputsString, int numberOfFunctions, long idExec) throws InterruptedException, ExecutionException {
 		 runCommandHandler.executeFLYonVMCluster(objectInputsString, numberOfFunctions, this.bucketName, this.projectID, idExec, this.terminationQueueUrl);
 	 }
 	 
-	 public String checkForExecutionErrors(int numberOfFunctions) {
-		 return runCommandHandler.checkForExecutionErrors(numberOfFunctions, this.bucketName);
+	 public String checkForExecutionErrors() {
+		 return runCommandHandler.checkForExecutionErrors(this.bucketName);
 	 }
 	 
 	 public void cleanResources() {

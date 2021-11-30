@@ -129,6 +129,8 @@ public class TestVMClusterAWS {
 				
 		totalSum();
 		
+		awsClient.cleanResources();
+		
 		awsClient.deleteResourcesAllocated();
 		__thread_pool_smp.shutdown();
 		

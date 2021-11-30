@@ -73,6 +73,21 @@ public class RunCommandHandler {
 			executeCommand(vm.getInstanceId(), bucketName, docJarName, "building");
 		}
 	}
+	
+	protected String checkBuildingStatus(String bucketName) {
+		
+		String errorOfAllVMs = "";
+		for (Map.Entry<String, String> hm : commandIds.entrySet()) {
+			//Construct the key of "stdout" file
+			String stdoutKey = "buildingStatusOutput/"+hm.getKey()+"/"+hm.getValue()+"/awsrunShellScript/building/stdout";
+			errorOfAllVMs += "Virtual Machine with instance ID -> "+ hm.getValue() + "\n"; 
+			errorOfAllVMs += s3Handler.getFileContentAsStringIfExistent(bucketName, stdoutKey);
+			errorOfAllVMs += "\n";
+			
+			if(errorOfAllVMs.contains("BUILD FAILURE")) return errorOfAllVMs;
+		}
+		return null;
+	}
 
 	protected void executeFLYonVMCluster(ArrayList<String> objectInputsString, int numberOfFunctions, String bucketName, 
 			String projectName, long idExec, String queueUrl) throws InterruptedException, ExecutionException {
@@ -124,7 +139,7 @@ public class RunCommandHandler {
 		}
 	}
 	
-	protected String checkForExecutionErrors(int numberOfFunctions, String bucketName) {
+	protected String checkForExecutionErrors(String bucketName) {
 		
 		String errorOfAllVMs = "";
 		for (Map.Entry<String, String> hm : commandIds.entrySet()) {
@@ -133,14 +148,13 @@ public class RunCommandHandler {
 			errorOfAllVMs += "Virtual Machine with instance ID -> "+ hm.getValue() + "\n"; 
 			errorOfAllVMs += s3Handler.getFileContentAsStringIfExistent(bucketName, stderrKey);
 			errorOfAllVMs += "\n";
+			
+			if(errorOfAllVMs.contains("Exception") || errorOfAllVMs.contains("Error")) return errorOfAllVMs;
 		}
-		
-		if(errorOfAllVMs.contains("Exception")) return errorOfAllVMs;
-		else return null;
+		return null;
 	}
 
 	protected void deleteFLYdocumentsCommand() {
-		System.out.println("I Am inside the metod");
 		List<String> docNameToDelete = new ArrayList<>();
 		String nextToken = null;
 
@@ -156,10 +170,7 @@ public class RunCommandHandler {
 		    nextToken = results.getNextToken();
 	    } while (nextToken != null);
 
-		System.out.println("I Am after the first while -> "+docNameToDelete.toString());
-
 	    for (String docName : docNameToDelete) {
-			System.out.println("I Am inside the delete for");
 			DeleteDocumentRequest deleteDocRequest = new DeleteDocumentRequest().withName(docName);
 			ssm.deleteDocument(deleteDocRequest);
 	    }
