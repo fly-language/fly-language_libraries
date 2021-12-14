@@ -2,6 +2,7 @@ package isislab.awsclient;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -94,11 +95,30 @@ public class RunCommandHandler {
 
 		String docExecutionName = "fly_execution";
 		
+		//Specify how many splits each VM has to compute
+		int splitsNum = objectInputsString.size();
+		int vmCount = this.virtualMachines.size();
+		
+		int[] splitCount = new int[vmCount];
+		int[] displ = new int[vmCount]; 
+		int offset = 0;
+		
+		for(int i=0; i < vmCount; i++) {
+			splitCount[i] = ( splitsNum / vmCount) + ((i < (splitsNum % vmCount)) ? 1 : 0);
+			displ[i] = offset;
+			offset += splitCount[i];
+		}
+		
 	    //Create the document for the command
 		try {
-			for (int i=0; i < numberOfFunctions; i++)	
-				createDocumentMethod(getDocumentContent3(projectName,bucketName,objectInputsString.get(i), idExec, queueUrl), 
+			for (int i=0; i < vmCount; i++) {
+				//Select my part of splits
+				ArrayList<String> mySplits = new ArrayList<String>();
+				for(int k=displ[i]; k < splitCount[i]; k++) mySplits.add(objectInputsString.get(k));
+					
+				createDocumentMethod(getDocumentContent3(projectName,bucketName,Arrays.deepToString(mySplits.toArray()), idExec, queueUrl), 
 					docExecutionName+this.virtualMachines.get(i).getInstanceId());
+			}
 	    }
 	    catch (IOException e) {
 	      e.printStackTrace();
@@ -106,7 +126,7 @@ public class RunCommandHandler {
 		
 		//FLY execution
 		System.out.println("\n\u27A4 Fly execution...");		
-		for (int i=0; i< numberOfFunctions; i++) {
+		for (int i=0; i< vmCount; i++) {
 			
 			System.out.println("Running on VM "+this.virtualMachines.get(i).getInstanceId());
 			executeCommand(this.virtualMachines.get(i).getInstanceId(), bucketName, docExecutionName+this.virtualMachines.get(i).getInstanceId(), "execution");
