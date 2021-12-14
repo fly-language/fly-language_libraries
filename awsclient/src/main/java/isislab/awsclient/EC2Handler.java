@@ -21,6 +21,8 @@ import com.amazonaws.services.ec2.model.CreateKeyPairResult;
 import com.amazonaws.services.ec2.model.CreateSecurityGroupRequest;
 import com.amazonaws.services.ec2.model.CreateTagsRequest;
 import com.amazonaws.services.ec2.model.DescribeInstanceStatusRequest;
+import com.amazonaws.services.ec2.model.DescribeInstanceTypesRequest;
+import com.amazonaws.services.ec2.model.DescribeInstanceTypesResult;
 import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
 import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.DescribeKeyPairsResult;
@@ -519,8 +521,8 @@ public class EC2Handler {
 	}
 	
 	 protected int getVCPUsCount(String instaceType) {
-		 InstanceTypeInfo vmTypeInfo = 	new InstanceTypeInfo().withInstanceType(InstanceType.fromValue(instaceType));
-		 return vmTypeInfo.getVCpuInfo().getDefaultVCpus();
+		 DescribeInstanceTypesResult res = ec2.describeInstanceTypes(new DescribeInstanceTypesRequest().withInstanceTypes(instaceType));
+		 return res.getInstanceTypes().get(0).getVCpuInfo().getDefaultVCpus();
 	 }
 
 }

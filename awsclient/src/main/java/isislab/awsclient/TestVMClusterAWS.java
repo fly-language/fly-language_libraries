@@ -36,7 +36,7 @@ public class TestVMClusterAWS {
 	public static void main(String[] args) throws Exception {
 		
 		String region = "eu-west-2";
-		String instance_type = "t2.micro";
+		String instance_type = "t3.micro";
 		String purchasingOption = "on-demand";
 		boolean persistent = false;
 		int vmCount = 2;
@@ -47,6 +47,7 @@ public class TestVMClusterAWS {
 		String terminationQueue = __sqs_aws.getQueueUrl("ch-termination-"+__id_execution).getQueueUrl();
 		
 		AWSClient awsClient = new AWSClient(creds, region, terminationQueue);
+		int myVCPUs = awsClient.getVCPUsCount(instance_type);
 		
 		//Upload current project on the S3 bucket created
 		awsClient.zipAndUploadCurrentProject();
