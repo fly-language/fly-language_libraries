@@ -59,6 +59,10 @@ public class AWSClient {
 		return ec2Handler.createVirtualMachinesCluster(instance_type, this.bucketName, purchasingOption, persistent, vmCount, this.terminationQueueUrl);			
 	}
 	 
+	 public int getVCPUsCount(String instaceType) {
+		 return ec2Handler.getVCPUsCount(instaceType);
+	 }
+	 
 	 public void downloadFLYProjectonVMCluster() {
 		 runCommandHandler.downloadExecutionFileOnVMCluster(this.bucketName, this.terminationQueueUrl);
 	 }

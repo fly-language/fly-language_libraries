@@ -38,6 +38,7 @@ import com.amazonaws.services.ec2.model.SecurityGroup;
 import com.amazonaws.services.ec2.model.Tag;
 import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
 import com.amazonaws.services.ec2.model.TerminateInstancesResult;
+import com.amazonaws.services.ec2.model.InstanceTypeInfo;
 import com.amazonaws.services.ec2.waiters.AmazonEC2Waiters;
 import com.amazonaws.waiters.WaiterParameters;
 import com.amazonaws.waiters.WaiterTimedOutException;
@@ -516,4 +517,10 @@ public class EC2Handler {
 					
 		return true;
 	}
+	
+	 protected int getVCPUsCount(String instaceType) {
+		 InstanceTypeInfo vmTypeInfo = 	new InstanceTypeInfo().withInstanceType(InstanceType.fromValue(instaceType));
+		 return vmTypeInfo.getVCpuInfo().getDefaultVCpus();
+	 }
+
 }

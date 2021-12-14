@@ -23,7 +23,7 @@
             <dependency>
 			   <groupId>com.amazonaws</groupId>
 			   <artifactId>aws-java-sdk</artifactId>
-			   <version>1.11.448</version>
+			   <version>1.12.128</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -32,22 +32,22 @@
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-ec2</artifactId>
-            <version>1.11.448</version>
+            <version>1.12.128</version>
         </dependency>
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-ssm</artifactId>
-           	<version>1.11.448</version>
+           	<version>1.12.128</version>
         </dependency>
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-s3</artifactId>
-           	<version>1.11.448</version>
+           	<version>1.12.128</version>
         </dependency>
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-sqs</artifactId>
-           	<version>1.11.448</version>
+           	<version>1.12.128</version>
         </dependency>
 	    <dependency>
 	      <groupId>junit</groupId>
