@@ -1,6 +1,7 @@
 package isislab.awsclient;
 
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -10,6 +11,9 @@ import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.ec2.AmazonEC2;
@@ -42,13 +46,28 @@ import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
 import com.amazonaws.services.ec2.model.TerminateInstancesResult;
 import com.amazonaws.services.ec2.model.InstanceTypeInfo;
 import com.amazonaws.services.ec2.waiters.AmazonEC2Waiters;
+import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
+import com.amazonaws.services.identitymanagement.model.AddRoleToInstanceProfileRequest;
+import com.amazonaws.services.identitymanagement.model.AddRoleToInstanceProfileResult;
+import com.amazonaws.services.identitymanagement.model.AttachRolePolicyRequest;
+import com.amazonaws.services.identitymanagement.model.CreateInstanceProfileRequest;
+import com.amazonaws.services.identitymanagement.model.CreateInstanceProfileResult;
+import com.amazonaws.services.identitymanagement.model.CreatePolicyRequest;
+import com.amazonaws.services.identitymanagement.model.CreatePolicyResult;
+import com.amazonaws.services.identitymanagement.model.CreateRoleRequest;
+import com.amazonaws.services.identitymanagement.model.CreateRoleResult;
+import com.amazonaws.services.identitymanagement.model.InstanceProfile;
+import com.amazonaws.services.identitymanagement.model.ListRolesResult;
+import com.amazonaws.services.identitymanagement.model.Role;
 import com.amazonaws.waiters.WaiterParameters;
 import com.amazonaws.waiters.WaiterTimedOutException;
 import com.amazonaws.waiters.WaiterUnrecoverableException;
 
+
 public class EC2Handler {
 	
 	private AmazonEC2 ec2;
+	private AmazonIdentityManagement iamClient;
 	private OnDemandInstancesHandler onDemandHandler;
 	private SpotInstancesHandler spotHandler;
 	private RunCommandHandler runCommandHandler;
@@ -57,8 +76,9 @@ public class EC2Handler {
 	
 	private List<Instance> virtualMachines;
     
-	protected EC2Handler (AmazonEC2 ec2, RunCommandHandler runCommandHandler, S3Handler s3Handler) {
+	protected EC2Handler (AmazonEC2 ec2, AmazonIdentityManagement iamClient, RunCommandHandler runCommandHandler, S3Handler s3Handler) {
     	this.ec2 = ec2;
+    	this.iamClient = iamClient;
     	this.runCommandHandler = runCommandHandler;
     	this.s3Handler = s3Handler;
         onDemandHandler = new OnDemandInstancesHandler(ec2);
@@ -72,8 +92,9 @@ public class EC2Handler {
     	if (!checkCorrectInstanceType(instance_type)) System.exit(1);  //Instance_type not correct
     	
 		String amiId = "ami-005383956f2e5fb96";
-    	String securityGroupName = "fly-security-group";
-    	String keyPairName = "fly-key-pair";
+    	String securityGroupName = "flySecurityGroup";
+    	String keyPairName = "flyKeyPair";
+    	String instanceProfileName = "roleForEc2";
         	
 	    //Check if a new VM Cluster has to be created or we could use an existent one
     	this.persistent = persistent;
@@ -99,11 +120,12 @@ public class EC2Handler {
 
 		createSecurityGroupIfNotExists(securityGroupName);
 		createKeyPairIfNotExists(keyPairName);
+		createInstanceProfileIfNotExists(instanceProfileName);
 		
         if (moreVMneeded) System.out.print("\n\u27A4 The existent cluster has not enough VMs...Creating additional "+vmCount+" VMs for the Cluster...");
         else System.out.print("\n\u27A4 Creating "+vmCount+" VMs for the Cluster...");
 		
-		IamInstanceProfileSpecification iamInstanceProfile = new IamInstanceProfileSpecification().withName("role_for_ec2");
+		IamInstanceProfileSpecification iamInstanceProfile = new IamInstanceProfileSpecification().withName(instanceProfileName);
 		
 		//Check purchasing option: on-demand or spot
 		if( purchasingOption.equals("on-demand")) {
@@ -131,7 +153,7 @@ public class EC2Handler {
     
     private void nameInstances() {
 		//Add a name to each instance of the cluster
-    	String name = "fly-VM-";
+    	String name = "flyVM";
     	Tag tag;
     	CreateTagsRequest tag_request;
 		
@@ -147,7 +169,7 @@ public class EC2Handler {
     		ec2.createTags(tag_request);
     	}
     }
-    
+        
     
     //Check if VM Instance type specified is an existent one
     private boolean checkCorrectInstanceType(String instance_type) {
@@ -254,6 +276,56 @@ public class EC2Handler {
 		}
 	}
 	
+	private void createInstanceProfileIfNotExists(String instanceProfileName) {
+			//Check if the instance profile exists
+			for (InstanceProfile p : iamClient.listInstanceProfiles().getInstanceProfiles()) if(p.getInstanceProfileName().equals(instanceProfileName)) return; //Instance profile already existent
+		
+	    	//Instance profile has to be created, so check first if the role exists
+			Boolean roleExists = false;
+			String roleName = instanceProfileName;
+	    	for (Role r : iamClient.listRoles().getRoles()) if(r.getRoleName().equals(roleName)) roleExists = true; //Role already existent
+
+	    	if(!roleExists) {
+	    		//The role does not exist, so create it
+	    		try {
+			    	//The specified role does not exist
+				    String assumeRolefileLocation = "assumeRole.json";
+		    		FileReader reader = new FileReader(assumeRolefileLocation);
+		            JSONParser jsonParser = new JSONParser();
+		            JSONObject jsonObject = (JSONObject) jsonParser.parse(reader);
+		
+		            CreateRoleRequest roleRequest = new CreateRoleRequest()
+		            		.withRoleName(roleName)
+		            		.withAssumeRolePolicyDocument(jsonObject.toJSONString());
+		            
+		            iamClient.createRole(roleRequest);
+		            
+				    String policyfileLocation = "roleForEc2Policy.json";
+		    		reader = new FileReader(policyfileLocation);
+		            jsonParser = new JSONParser();
+		            jsonObject = (JSONObject) jsonParser.parse(reader);
+
+		            CreatePolicyRequest policyRequest = new CreatePolicyRequest()
+		            		.withPolicyDocument(jsonObject.toJSONString())
+		            		.withPolicyName("ec2RolePolicy");
+	   
+		            CreatePolicyResult res = iamClient.createPolicy(policyRequest);
+		            String policyARN = res.getPolicy().getArn();
+		            
+		            iamClient.attachRolePolicy(new AttachRolePolicyRequest().withPolicyArn(policyARN).withRoleName(roleName));
+		
+		        } catch (Exception e) {
+		            e.printStackTrace();
+		        }
+	    	}
+	    	
+	    	//Create instance profile
+	    	iamClient.createInstanceProfile(new CreateInstanceProfileRequest().withInstanceProfileName(instanceProfileName));
+	    	//Now in both cases, the role is existent, so add the role to the instance profile created
+	    	AddRoleToInstanceProfileResult r = iamClient.addRoleToInstanceProfile(new AddRoleToInstanceProfileRequest().withInstanceProfileName(instanceProfileName).withRoleName(roleName));
+	}
+
+	
 	protected void deleteResourcesAllocated(boolean terminateClusterNotMatching, String bucketName) {
 		
 		if(this.persistent && !terminateClusterNotMatching) {
@@ -275,10 +347,10 @@ public class EC2Handler {
 					
 				for (Reservation reservation : reservations) {
 				    for (Instance instance : reservation.getInstances()) {
-				    	//check if there are instances with the "fly-VM-X" name
+				    	//check if there are instances with the "flyVMX" name
 				    	if(instance.getState().getName().equals("running") && instance.getTags() != null) {
 				    		for (Tag tag : instance.getTags()) {
-				    			if( tag.getKey().equals("Name") && tag.getValue().contains("fly-VM")) this.virtualMachines.add(instance);
+				    			if( tag.getKey().equals("Name") && tag.getValue().contains("flyVM")) this.virtualMachines.add(instance);
 				            }
 				    	}
 				    }
@@ -406,10 +478,10 @@ public class EC2Handler {
 			
 		for (Reservation reservation : reservations) {
 		    for (Instance instance : reservation.getInstances()) {
-		    	//check if there are instances with the "fly-VM-X" name
+		    	//check if there are instances with the "flyVMX" name
 		    	if(instance.getState().getName().equals("running") && instance.getTags() != null) {
 		    		for (Tag tag : instance.getTags()) {
-		    			if( tag.getKey().equals("Name") && tag.getValue().contains("fly-VM")) vmsAvailable.add(instance);
+		    			if( tag.getKey().equals("Name") && tag.getValue().contains("flyVM")) vmsAvailable.add(instance);
 		            }
 		    	}
 		    }
