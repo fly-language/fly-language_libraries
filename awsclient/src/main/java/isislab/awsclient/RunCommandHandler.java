@@ -116,7 +116,6 @@ public class RunCommandHandler {
 				String mySplits = splitCount[i] + "";
 				for(int k=displ[i]; k < displ[i] + splitCount[i]; k++) mySplits = mySplits + "-" + objectInputsString.get(k);
 				
-				System.out.println(mySplits);
 				createDocumentMethod(getDocumentContent3(projectName,bucketName,mySplits, idExec, queueUrl), 
 					docExecutionName+this.virtualMachines.get(i).getInstanceId());
 			}

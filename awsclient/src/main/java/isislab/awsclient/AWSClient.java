@@ -51,7 +51,7 @@ public class AWSClient {
 	
 	 public void zipAndUploadCurrentProject() {
 		 
-		this.bucketName = s3Handler.createBucket("fly-bucket-vm-cluster");
+		this.bucketName = s3Handler.createBucket("flybucketvmcluster");
 		this.projectID = s3Handler.uploadCurrentProject(this.bucketName);
 	 }
 	 

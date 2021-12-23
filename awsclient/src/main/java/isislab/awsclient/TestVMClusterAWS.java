@@ -19,7 +19,7 @@ import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 
 public class TestVMClusterAWS {
 	
-	static BasicAWSCredentials creds = new BasicAWSCredentials("", "");
+	static BasicAWSCredentials creds = new BasicAWSCredentials("AKIA4TCJWOWL5G2TAKFK", "HST5S55lOsReCE1YT30Hs9402T9TKdkl1puDpNLB");
 	static ExecutorService __thread_pool_smp = Executors.newFixedThreadPool(4);
 	static LinkedTransferQueue<Object> ch = new LinkedTransferQueue<Object>();
 	static LinkedTransferQueue<Object> chTermination = new LinkedTransferQueue<Object>();
@@ -43,15 +43,20 @@ public class TestVMClusterAWS {
 		
 		int smpThreadCount = 2;
 		
-		__sqs_aws.createQueue(new CreateQueueRequest("ch-termination-"+__id_execution));
-		String terminationQueue = __sqs_aws.getQueueUrl("ch-termination-"+__id_execution).getQueueUrl();
+		//__sqs_aws.createQueue(new CreateQueueRequest("ch-termination-"+__id_execution));
+		//String terminationQueue = __sqs_aws.getQueueUrl("ch-termination-"+__id_execution).getQueueUrl();
 		
+		String terminationQueue = "test";
+
 		AWSClient awsClient = new AWSClient(creds, region, terminationQueue);
 		int myVCPUs = awsClient.getVCPUsCount(instance_type);
 		
+		//System.out.println(myVCPUs);
+		
+		
 		//Upload current project on the S3 bucket created
 		awsClient.zipAndUploadCurrentProject();
-		
+		/*
 		//Run a cluster of VMs 	
 		int vmsCreatedCount = awsClient.launchVMCluster(instance_type, purchasingOption, persistent,vmCount);
 		
@@ -133,6 +138,7 @@ public class TestVMClusterAWS {
 		awsClient.cleanResources();
 		
 		awsClient.deleteResourcesAllocated();
+		*/
 		__thread_pool_smp.shutdown();
 		
 		System.exit(0);
