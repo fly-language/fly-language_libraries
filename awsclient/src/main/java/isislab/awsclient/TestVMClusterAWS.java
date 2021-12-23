@@ -19,7 +19,7 @@ import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 
 public class TestVMClusterAWS {
 	
-	static BasicAWSCredentials creds = new BasicAWSCredentials("AKIA4TCJWOWL5G2TAKFK", "HST5S55lOsReCE1YT30Hs9402T9TKdkl1puDpNLB");
+	static BasicAWSCredentials creds = new BasicAWSCredentials("", "");
 	static ExecutorService __thread_pool_smp = Executors.newFixedThreadPool(4);
 	static LinkedTransferQueue<Object> ch = new LinkedTransferQueue<Object>();
 	static LinkedTransferQueue<Object> chTermination = new LinkedTransferQueue<Object>();
