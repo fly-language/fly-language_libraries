@@ -2,7 +2,6 @@ package isislab.awsclient;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -94,35 +93,53 @@ public class RunCommandHandler {
 			String projectName, long idExec, String queueUrl) throws InterruptedException, ExecutionException {
 
 		String docExecutionName = "fly_execution";
-		
-		//Specify how many splits each VM has to compute
-		int splitsNum = objectInputsString.size();
 		int vmCount = this.virtualMachines.size();
 		
-		int[] splitCount = new int[vmCount];
-		int[] displ = new int[vmCount]; 
-		int offset = 0;
-		
-		for(int i=0; i < vmCount; i++) {
-			splitCount[i] = ( splitsNum / vmCount) + ((i < (splitsNum % vmCount)) ? 1 : 0);
-			displ[i] = offset;
-			offset += splitCount[i];
-		}
-		
-	    //Create the document for the command
-		try {
-			for (int i=0; i < vmCount; i++) {
-				//Select my part of splits
-				String mySplits = splitCount[i] + "";
-				for(int k=displ[i]; k < displ[i] + splitCount[i]; k++) mySplits = mySplits + "-" + objectInputsString.get(k);
-				
-				createDocumentMethod(getDocumentContent3(projectName,bucketName,mySplits, idExec, queueUrl), 
-					docExecutionName+this.virtualMachines.get(i).getInstanceId());
+		//Check if the input is just a range of functions to execute
+		if(objectInputsString.get(0).contains("portionLength")) {
+			//Range input
+			
+			//Create the document for the command
+			try {
+				for (int i=0; i < vmCount; i++) {
+					createDocumentMethod(getDocumentContent3(projectName,bucketName,objectInputsString.get(i), idExec, queueUrl), 
+						docExecutionName+this.virtualMachines.get(i).getInstanceId());
+				}
+		    }
+		    catch (IOException e) {
+		      e.printStackTrace();
+		    }
+			
+		}else {
+			//Array or matrix split input
+			//Specify how many splits each VM has to compute
+			int splitsNum = objectInputsString.size();
+			
+			int[] splitCount = new int[vmCount];
+			int[] displ = new int[vmCount]; 
+			int offset = 0;
+			
+			for(int i=0; i < vmCount; i++) {
+				splitCount[i] = ( splitsNum / vmCount) + ((i < (splitsNum % vmCount)) ? 1 : 0);
+				displ[i] = offset;
+				offset += splitCount[i];
 			}
-	    }
-	    catch (IOException e) {
-	      e.printStackTrace();
-	    }
+			
+		    //Create the document for the command
+			try {
+				for (int i=0; i < vmCount; i++) {
+					//Select my part of splits
+					String mySplits = splitCount[i] + "";
+					for(int k=displ[i]; k < displ[i] + splitCount[i]; k++) mySplits = mySplits + "-" + objectInputsString.get(k);
+					
+					createDocumentMethod(getDocumentContent3(projectName,bucketName,mySplits, idExec, queueUrl), 
+						docExecutionName+this.virtualMachines.get(i).getInstanceId());
+				}
+		    }
+		    catch (IOException e) {
+		      e.printStackTrace();
+		    }
+		}
 		
 		//FLY execution
 		System.out.println("\n\u27A4 Fly execution...");		
