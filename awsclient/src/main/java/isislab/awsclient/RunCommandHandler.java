@@ -2,6 +2,7 @@ package isislab.awsclient;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -129,10 +130,11 @@ public class RunCommandHandler {
 			try {
 				for (int i=0; i < vmCount; i++) {
 					//Select my part of splits
-					String mySplits = splitCount[i] + "";
-					for(int k=displ[i]; k < displ[i] + splitCount[i]; k++) mySplits = mySplits + "-" + objectInputsString.get(k);
+					ArrayList<String> mySplits = new ArrayList<>();
+					mySplits.add(splitCount[i] + "");
+					for(int k=displ[i]; k < displ[i] + splitCount[i]; k++) mySplits.add(objectInputsString.get(k));
 					
-					createDocumentMethod(getDocumentContent3(projectName,bucketName,mySplits, idExec, queueUrl), 
+					createDocumentMethod(getDocumentContent3(projectName,bucketName,Arrays.toString(mySplits.toArray()), idExec, queueUrl), 
 						docExecutionName+this.virtualMachines.get(i).getInstanceId());
 				}
 		    }
