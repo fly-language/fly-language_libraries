@@ -1,11 +1,7 @@
 package isislab.awsclient;
 
-import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
-
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
 
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -13,16 +9,6 @@ import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClientBuilder;
-import com.amazonaws.services.identitymanagement.model.AttachRolePolicyRequest;
-import com.amazonaws.services.identitymanagement.model.CreatePolicyRequest;
-import com.amazonaws.services.identitymanagement.model.CreatePolicyResult;
-import com.amazonaws.services.identitymanagement.model.CreateRoleRequest;
-import com.amazonaws.services.identitymanagement.model.CreateRoleResult;
-import com.amazonaws.services.identitymanagement.model.GetRoleRequest;
-import com.amazonaws.services.identitymanagement.model.GetRoleResult;
-import com.amazonaws.services.identitymanagement.model.ListRolesRequest;
-import com.amazonaws.services.identitymanagement.model.NoSuchEntityException;
-import com.amazonaws.services.identitymanagement.model.Role;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagement;

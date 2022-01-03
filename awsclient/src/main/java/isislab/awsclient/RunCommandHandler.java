@@ -2,7 +2,6 @@ package isislab.awsclient;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -97,7 +96,7 @@ public class RunCommandHandler {
 		int vmCount = this.virtualMachines.size();
 		
 		//Check if the input is just a range of functions to execute
-		if(objectInputsString.get(0).contains("portionLength")) {
+		if(objectInputsString.get(0).contains("portionRangeLength")) {
 			//Range input
 			
 			//Create the document for the command
