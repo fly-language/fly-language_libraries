@@ -26,7 +26,7 @@ public class TestVMClusterAZURE {
 		String region = "west europe";
 		String vmTypeSize_1641303728741 = "Standard_B1s"; //Standard_B1s, Standard_B2s as an alternative, be careful 4 vCPUs are allowed as max with Student Subscription
 		String purchasingOption_1641303728741 = "on-demand";
-		int vmCount_1641303728741 = 2;
+		int vmCount_1641303728741 = 3;
 		boolean persistent_1641303728741 = true;
 
 		

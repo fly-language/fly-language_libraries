@@ -129,7 +129,7 @@ public class AzureClient {
 		this.azure = login();
 		
 		//VM Cluster handling
-		this.vmClusterHandler = new VMClusterHandler(this.azure, this.region, this.subscriptionId);
+		this.vmClusterHandler = new VMClusterHandler(this.azure, this.region, this.subscriptionId, this.id);
 	}
 	
 	

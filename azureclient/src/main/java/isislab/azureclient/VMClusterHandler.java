@@ -31,12 +31,14 @@ public class VMClusterHandler {
 	private StorageAccount sa;
 	private String subscriptionId;
 	private List<VirtualMachine> virtualMachines;
+	private String id;
 	
-	public VMClusterHandler (Azure azure, Region region, String subscriptionId) {
+	public VMClusterHandler (Azure azure, Region region, String subscriptionId, String id) {
 		this.azure = azure;
 		this.region = region;
 		this.subscriptionId = subscriptionId;
 		this.virtualMachines = new ArrayList<VirtualMachine>();
+		this.id = id;
 	}
 	
 	protected void setStorageAccount(StorageAccount sa) {
@@ -95,7 +97,9 @@ public class VMClusterHandler {
   		
 		final String commandBody = "{\"commandId\": \"RunShellScript\",\"script\": ["
 				+ "\"cd ../../../../../../home/"+FLY_VM_USER+"\","
-				+ "\"curl "+uriBlob+" --output "+projectName+"\","
+				+ "\"curl "+uriBlob+" --output "+projectName+" 2> downloadError 1> downloadOutput\","
+				+ "\"az storage blob upload -c bucket-"+id+" -f downloadError --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
+				+ "\"az storage blob upload -c bucket-"+id+" -f downloadOutput --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
 				+ "\"az storage message put --content downloadTerminated --queue-name "+terminationQueueName+" --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\"]"
 				+"}";		
 		
@@ -148,7 +152,9 @@ public class VMClusterHandler {
 				+ "\"cd ../../../../../../home/"+FLY_VM_USER+"\","
 				+ "\"unzip "+projectName+"\","
 				+ "\"cd "+projectName+"\","
-				+ "\"mvn -T 1C install -Dmaven.test.skip -DskipTests -Dapp.mainClass="+mainClass+"\","
+				+ "\"mvn -T 1C install -Dmaven.test.skip -DskipTests -Dapp.mainClass="+mainClass+" 2> buildingError 1> buildingOutput\","
+				+ "\"az storage blob upload -c bucket-"+id+" -f buildingError --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
+				+ "\"az storage blob upload -c bucket-"+id+" -f buildingOutput --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
 				+ "\"az storage message put --content buildingTerminated --queue-name "+terminationQueueName+" --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\"]"
 				+"}";
 		
@@ -218,7 +224,9 @@ public class VMClusterHandler {
 						+ "\"chmod -R 777 "+projectName+"\","
 						+ "\"mv "+projectName+"/src-gen .\","
 						+ "\"mv "+projectName+"/target/"+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar .\","
-						+ "\"java -jar "+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar "+objectInputsString.get(i)+" "+idExec+"\","
+						+ "\"java -jar "+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar "+objectInputsString.get(i)+" "+idExec+" 2> executionError 1> executionOutput\","
+						+ "\"az storage blob upload -c bucket-"+id+" -f executionError --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
+						+ "\"az storage blob upload -c bucket-"+id+" -f executionOutput --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
 						+ "\"rm -rf ..?* .[!.]* *\"]"
 						+"}";
 			}else {
@@ -245,7 +253,9 @@ public class VMClusterHandler {
 						+ "\"chmod -R 777 "+projectName+"\","
 						+ "\"mv "+projectName+"/src-gen .\","
 						+ "\"mv "+projectName+"/target/"+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar .\","
-						+ "\"java -jar "+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar "+mySplits+" "+idExec+"\","
+						+ "\"java -jar "+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar "+mySplits+" "+idExec+" 2> executionError 1> executionOutput\","
+						+ "\"az storage blob upload -c bucket-"+id+" -f executionError --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
+						+ "\"az storage blob upload -c bucket-"+id+" -f executionOutput --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
 						+ "\"rm -rf ..?* .[!.]* *\"]"
 						+"}";
 			}
@@ -266,6 +276,24 @@ public class VMClusterHandler {
 					break;
 		    	}
 	    	}
+		}
+		
+    	//Ensure the commands are succeed
+    	boolean commandsInProgress = true;
+		while (commandsInProgress) {
+			for (Response r : responses) {
+				if(r.getStatusCode() == 202) {
+					Future<Response> whenResponse = httpClient.prepareGet(r.getHeader("azure-asyncoperation"))
+							.addHeader("Authorization", "Bearer " + token)	
+		  					.addHeader("Content-Type", "application/json")
+							.execute();
+					
+					if ( whenResponse.get().getResponseBody().contains("Provisioning succeeded")) commandsInProgress = false;
+					else commandsInProgress = true;
+				}else {
+					System.out.println("STATUS -> "+r.getStatusCode());
+				}
+			}
 		}
 
 		
