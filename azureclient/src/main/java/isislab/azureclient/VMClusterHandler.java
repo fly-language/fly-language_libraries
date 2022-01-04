@@ -201,7 +201,7 @@ public class VMClusterHandler {
 	
 	
 	//Building project and FLY execution
-	protected void executeFLYonVMCluster(ArrayList<String> objectInputsString, int numberOfFunctions, String uriBlob, long idExec, AsyncHttpClient httpClient, String resourceGroupName, String token) throws Exception {
+	protected void executeFLYonVMCluster(ArrayList<String> objectInputsString, int numberOfFunctions, String uriBlob, long idExec, AsyncHttpClient httpClient, String resourceGroupName, String token, String terminationQueueName) throws Exception {
 
   		//extract project name
   		String projectName = uriBlob.substring(uriBlob.lastIndexOf("/")+1);
@@ -228,6 +228,7 @@ public class VMClusterHandler {
 						+ "\"az storage blob upload -c bucket-"+id+" -f executionError --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
 						+ "\"az storage blob upload -c bucket-"+id+" -f executionOutput --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
 						+ "\"rm -rf ..?* .[!.]* *\"]"
+						+ "\"az storage message put --content executionTerminated --queue-name "+terminationQueueName+" --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\"]"
 						+"}";
 			}else {
 				//Array or matrix split input
@@ -256,6 +257,7 @@ public class VMClusterHandler {
 						+ "\"java -jar "+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar "+mySplits.replace("\"", "\\\"")+" "+idExec+" 2> executionError 1> executionOutput\","
 						+ "\"az storage blob upload -c bucket-"+id+" -f executionError --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
 						+ "\"az storage blob upload -c bucket-"+id+" -f executionOutput --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
+						+ "\"az storage message put --content executionTerminated --queue-name "+terminationQueueName+" --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\"]"
 						+ "\"rm -rf ..?* .[!.]* *\"]"
 						+"}";
 			}

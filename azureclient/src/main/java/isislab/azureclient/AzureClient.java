@@ -593,7 +593,7 @@ public class AzureClient {
 	 }*/
 	 
 	 public void executeFLYonVMCluster(ArrayList<String> objectInputsString, int numberOfFunctions, long idExec) throws Exception { //TO FIX
-		 vmClusterHandler.executeFLYonVMCluster(objectInputsString, numberOfFunctions, this.projectID, idExec, this.httpClient, this.resourceGroup.name(), getOAuthToken());
+		 vmClusterHandler.executeFLYonVMCluster(objectInputsString, numberOfFunctions, this.projectID, idExec, this.httpClient, this.resourceGroup.name(), getOAuthToken(), this.terminationQueueName);
 	 }
 	 
 	 /*
