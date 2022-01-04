@@ -14,6 +14,7 @@ import org.asynchttpclient.Response;
 import com.microsoft.azure.management.Azure;
 import com.microsoft.azure.management.compute.VirtualMachine;
 import com.microsoft.azure.management.compute.VirtualMachineEvictionPolicyTypes;
+import com.microsoft.azure.management.compute.VirtualMachineSize;
 import com.microsoft.azure.management.compute.VirtualMachineSizeTypes;
 import com.microsoft.azure.management.network.Network;
 import com.microsoft.azure.management.resources.fluentcore.arm.Region;
@@ -134,7 +135,7 @@ public class VMClusterHandler {
 	    System.out.println("   \u2022 Commands provisioning succeded");
 	}
 	
-	protected void buildFLYProjectOnVMCluster(String uriBlob, String terminationQueueName, AsyncHttpClient httpClient, String resourceGroupName, String token) throws InterruptedException, ExecutionException {
+	protected void buildFLYProjectOnVMCluster(String uriBlob, String terminationQueueName, AsyncHttpClient httpClient, String resourceGroupName, String token, String mainClass) throws InterruptedException, ExecutionException {
 		
 	    System.out.println("\n\u27A4 Project Building...");
 
@@ -147,7 +148,7 @@ public class VMClusterHandler {
 				+ "\"cd ../../../../../../home/"+FLY_VM_USER+"\","
 				+ "\"unzip "+projectName+"\","
 				+ "\"cd "+projectName+"\","
-				+ "\"mvn -T 1C install -Dmaven.test.skip -DskipTests -Dapp.mainClass="+projectName+"SingleVM\","
+				+ "\"mvn -T 1C install -Dmaven.test.skip -DskipTests -Dapp.mainClass="+mainClass+"\","
 				+ "\"az storage message put --content buildingTerminated --queue-name "+terminationQueueName+" --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\"]"
 				+"}";
 		
@@ -194,31 +195,62 @@ public class VMClusterHandler {
 	
 	
 	//Building project and FLY execution
-	protected void executeFLYonVMCluster(int[] dimPortions, int[] displ, int numberOfFunctions, String uriBlob, long idExec, AsyncHttpClient httpClient, String resourceGroupName, String token) throws InterruptedException, ExecutionException {
+	protected void executeFLYonVMCluster(ArrayList<String> objectInputsString, int numberOfFunctions, String uriBlob, long idExec, AsyncHttpClient httpClient, String resourceGroupName, String token) throws InterruptedException, ExecutionException {
 
   		//extract project name
   		String projectName = uriBlob.substring(uriBlob.lastIndexOf("/")+1);
   		//trim the extension
   		projectName = projectName.substring(0, projectName.lastIndexOf("."));
 
+		int vmCount = this.virtualMachines.size();
+		List<Response> responses = new ArrayList<>();
+
 		//FLY execution
 		System.out.println("\n\u27A4 Fly execution...");
 		
-		List<Response> responses = new ArrayList<>();
-
-		for (int i = 0; i< this.virtualMachines.size(); i++) {				
-			
-			String commandBody = "{\"commandId\": \"RunShellScript\",\"script\": ["
-					+ "\"cd ../../../../../../home/"+FLY_VM_USER+"\","
-					+ "\"chmod -R 777 "+projectName+"\","
-					+ "\"mv "+projectName+"/src-gen .\","
-					+ "\"mv "+projectName+"/target/"+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar .\","
-					+ "\"java -jar "+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar "+dimPortions[i]+" "+displ[i]+" "+idExec+"\","
-					+ "\"rm -rf ..?* .[!.]* *\"]"
-					+"}";
+		for (int i=0; i< vmCount; i++) {
+			String commandBody = "";
+			//Check if the input is just a range of functions to execute
+			if(objectInputsString.get(0).contains("portionRangeLength")) {
+				//Range input
+				commandBody = "{\"commandId\": \"RunShellScript\",\"script\": ["
+						+ "\"cd ../../../../../../home/"+FLY_VM_USER+"\","
+						+ "\"chmod -R 777 "+projectName+"\","
+						+ "\"mv "+projectName+"/src-gen .\","
+						+ "\"mv "+projectName+"/target/"+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar .\","
+						+ "\"java -jar "+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar "+objectInputsString.get(i)+" "+idExec+"\","
+						+ "\"rm -rf ..?* .[!.]* *\"]"
+						+"}";
+			}else {
+				//Array or matrix split input
+				//Specify how many splits each VM has to compute
+				int splitsNum = objectInputsString.size();
 				
-		    System.out.println("   \u2022 Executing on VM "+this.virtualMachines.get(i).name());
-	    	
+				int[] splitCount = new int[vmCount];
+				int[] displ = new int[vmCount]; 
+				int offset = 0;
+				
+				for(int j=0; j < vmCount; j++) {
+					splitCount[j] = ( splitsNum / vmCount) + ((j < (splitsNum % vmCount)) ? 1 : 0);
+					displ[j] = offset;
+					offset += splitCount[j];
+				}
+				
+				//Select my part of splits
+				String mySplits = splitCount[i] + "";
+				for(int k=displ[i]; k < displ[i] + splitCount[i]; k++) mySplits = mySplits + "@@@@@" + objectInputsString.get(k);
+				
+				commandBody = "{\"commandId\": \"RunShellScript\",\"script\": ["
+						+ "\"cd ../../../../../../home/"+FLY_VM_USER+"\","
+						+ "\"chmod -R 777 "+projectName+"\","
+						+ "\"mv "+projectName+"/src-gen .\","
+						+ "\"mv "+projectName+"/target/"+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar .\","
+						+ "\"java -jar "+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar "+mySplits+" "+idExec+"\","
+						+ "\"rm -rf ..?* .[!.]* *\"]"
+						+"}";
+			}
+			
+			System.out.println("   \u2022 Executing on VM "+this.virtualMachines.get(i).name());
 	    	while (true) {
 		    	Future<Response> whenResponse = httpClient.preparePost("https://management.azure.com/subscriptions/"+this.subscriptionId+"/resourceGroups/"+resourceGroupName+"/providers/Microsoft.Compute/virtualMachines/"+this.virtualMachines.get(i).name()+"/runCommand?api-version=2020-12-01")
 							.addHeader("Authorization", "Bearer " + token)	
@@ -235,6 +267,7 @@ public class VMClusterHandler {
 		    	}
 	    	}
 		}
+
 		
 		//No need to check for command provisioning , if all results are published on the results queue the execution is went well
 	    System.out.println("   \u2022 Commands provisioning succeded");
@@ -249,8 +282,9 @@ public class VMClusterHandler {
 			vm.storageProfile().imageReference().offer().equals(vmImageOffer) &&
 			vm.storageProfile().imageReference().sku().equals(vmImageSku) &&
 			vm.size().toString().equals(vmSize)) return true;
+			
 		
-		//TO DO: check is is SPOT or ON-DEMAND when SPOT feature will be available
+		//TO DO: check if it is SPOT or ON-DEMAND when SPOT feature will be available
 
 		return false;
 	}
@@ -428,5 +462,12 @@ public class VMClusterHandler {
 		
 	    System.out.println("   \u2022 The VM cluster and related resources are successfully deleted.");
 	}
+	
+	protected int getVCPUsCount(String vmSize) {
+		for (VirtualMachineSize size : azure.virtualMachines().sizes().listByRegion(region)) {
+			if (size.name().equals(vmSize)) return size.numberOfCores();
+		}
+		return 0;
+	 }
 
 }

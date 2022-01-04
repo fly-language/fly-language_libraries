@@ -123,7 +123,7 @@ public class AzureClient {
 
 		this.id = id;
 		this.region = Region.fromName(region);
-		this.terminationQueueName = terminationQueueName;
+		this.terminationQueueName = terminationQueueName.toLowerCase();
 		queues = new HashMap<>();
 
 		this.azure = login();
@@ -227,9 +227,10 @@ public class AzureClient {
 	
 	public void setupQueue(String name) throws Exception {
 		
+		name = name.toLowerCase();
+
 		if( !queues.containsKey(name)) {
 			//queue not existent or not yet added to HasMap of queues
-			name = name.toLowerCase();
 			CloudQueueClient queueClient = cloudStorageAccount.createCloudQueueClient();
 			CloudQueue queue = queueClient.getQueueReference(name);
 			
@@ -531,7 +532,7 @@ public class AzureClient {
 		
 				// Connect to azure storage account
 				this.cloudStorageAccount = CloudStorageAccount.parse(storageConnectionString);
-				
+
 				storageAccountFound = true;
 			}
 		}
@@ -575,19 +576,37 @@ public class AzureClient {
 		 return vmClusterHandler.createVirtualMachinesCluster(this.resourceGroup.name(), vmSize, purchasingOption, persistent, vmCount, this.projectID, this.terminationQueueName, this.httpClient, getOAuthToken());
 	 }
 	 
+	 public int getVCPUsCount(String vmSize) {
+		 return vmClusterHandler.getVCPUsCount(vmSize);
+	 }
+	 
 	 public void downloadFLYProjectonVMCluster() throws InterruptedException, ExecutionException, IOException {
 		 vmClusterHandler.downloadExecutionFileOnVMCluster(this.resourceGroup.name(), this.projectID, this.terminationQueueName, this.httpClient, getOAuthToken());
 	 }
 	 
-	 public void buildFLYProjectOnVMCluster() throws Exception {
-		 vmClusterHandler.buildFLYProjectOnVMCluster(this.projectID, this.terminationQueueName, this.httpClient, this.resourceGroup.name(), getOAuthToken());
+	 public void buildFLYProjectOnVMCluster(String mainClass) throws Exception {
+		 vmClusterHandler.buildFLYProjectOnVMCluster(this.projectID, this.terminationQueueName, this.httpClient, this.resourceGroup.name(), getOAuthToken(), mainClass);
+	 }
+	 /*
+	 public String checkBuildingStatus() { //TO DO
+		 return vmClusterHandler.checkBuildingStatus();
+	 }*/
+	 
+	 public void executeFLYonVMCluster(ArrayList<String> objectInputsString, int numberOfFunctions, long idExec) throws Exception { //TO FIX
+		 vmClusterHandler.executeFLYonVMCluster(objectInputsString, numberOfFunctions, this.projectID, idExec, this.httpClient, this.resourceGroup.name(), getOAuthToken());
 	 }
 	 
-	 public void executeFLYonVMCluster(int[] dimPortions, int[] displ, int numberOfFunctions, long idExec) throws Exception {
-		 vmClusterHandler.executeFLYonVMCluster(dimPortions, displ, numberOfFunctions, this.projectID, idExec, this.httpClient, this.resourceGroup.name(), getOAuthToken());
-	 }
+	 /*
+	 public String checkForExecutionErrors() { //TO DO
+		 return vmClusterHandler.checkForExecutionErrors();
+	 }*/
+	 
+	 /*
+	 public void cleanResources() { //TO DO if needed
+		 vmClusterHandler.deleteFLYdocumentsCommand();
+	 }*/
 
-	 public void deleteResourcesAllocated() {
+	 public void deleteResourcesAllocated() { //TO CHECK
 		 vmClusterHandler.deleteResourcesAllocated(this.resourceGroup.name(), false);
 	 }
 }
