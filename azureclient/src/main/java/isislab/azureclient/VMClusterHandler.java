@@ -227,8 +227,8 @@ public class VMClusterHandler {
 						+ "\"java -jar "+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar "+objectInputsString.get(i).replace("\"", "\\\"") +" "+idExec+" 2> executionError 1> executionOutput\","
 						+ "\"az storage blob upload -c bucket-"+id+" -f executionError --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
 						+ "\"az storage blob upload -c bucket-"+id+" -f executionOutput --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
+						+ "\"az storage message put --content executionTerminated --queue-name "+terminationQueueName+" --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
 						+ "\"rm -rf ..?* .[!.]* *\"]"
-						+ "\"az storage message put --content executionTerminated --queue-name "+terminationQueueName+" --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\"]"
 						+"}";
 			}else {
 				//Array or matrix split input
@@ -257,7 +257,7 @@ public class VMClusterHandler {
 						+ "\"java -jar "+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar "+mySplits.replace("\"", "\\\"")+" "+idExec+" 2> executionError 1> executionOutput\","
 						+ "\"az storage blob upload -c bucket-"+id+" -f executionError --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
 						+ "\"az storage blob upload -c bucket-"+id+" -f executionOutput --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
-						+ "\"az storage message put --content executionTerminated --queue-name "+terminationQueueName+" --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\"]"
+						+ "\"az storage message put --content executionTerminated --queue-name "+terminationQueueName+" --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
 						+ "\"rm -rf ..?* .[!.]* *\"]"
 						+"}";
 			}
