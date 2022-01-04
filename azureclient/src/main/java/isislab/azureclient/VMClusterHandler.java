@@ -201,7 +201,7 @@ public class VMClusterHandler {
 	
 	
 	//Building project and FLY execution
-	protected void executeFLYonVMCluster(ArrayList<String> objectInputsString, int numberOfFunctions, String uriBlob, long idExec, AsyncHttpClient httpClient, String resourceGroupName, String token) throws InterruptedException, ExecutionException {
+	protected void executeFLYonVMCluster(ArrayList<String> objectInputsString, int numberOfFunctions, String uriBlob, long idExec, AsyncHttpClient httpClient, String resourceGroupName, String token) throws Exception {
 
   		//extract project name
   		String projectName = uriBlob.substring(uriBlob.lastIndexOf("/")+1);
@@ -224,7 +224,7 @@ public class VMClusterHandler {
 						+ "\"chmod -R 777 "+projectName+"\","
 						+ "\"mv "+projectName+"/src-gen .\","
 						+ "\"mv "+projectName+"/target/"+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar .\","
-						+ "\"java -jar "+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar "+objectInputsString.get(i)+" "+idExec+" 2> executionError 1> executionOutput\","
+						+ "\"java -jar "+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar "+objectInputsString.get(i).replace("\"", "\\\"") +" "+idExec+" 2> executionError 1> executionOutput\","
 						+ "\"az storage blob upload -c bucket-"+id+" -f executionError --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
 						+ "\"az storage blob upload -c bucket-"+id+" -f executionOutput --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
 						+ "\"rm -rf ..?* .[!.]* *\"]"
@@ -253,7 +253,7 @@ public class VMClusterHandler {
 						+ "\"chmod -R 777 "+projectName+"\","
 						+ "\"mv "+projectName+"/src-gen .\","
 						+ "\"mv "+projectName+"/target/"+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar .\","
-						+ "\"java -jar "+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar "+mySplits+" "+idExec+" 2> executionError 1> executionOutput\","
+						+ "\"java -jar "+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar "+mySplits.replace("\"", "\\\"")+" "+idExec+" 2> executionError 1> executionOutput\","
 						+ "\"az storage blob upload -c bucket-"+id+" -f executionError --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
 						+ "\"az storage blob upload -c bucket-"+id+" -f executionOutput --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
 						+ "\"rm -rf ..?* .[!.]* *\"]"
@@ -291,7 +291,11 @@ public class VMClusterHandler {
 					if ( whenResponse.get().getResponseBody().contains("Provisioning succeeded")) commandsInProgress = false;
 					else commandsInProgress = true;
 				}else {
-					System.out.println("STATUS -> "+r.getStatusCode());
+					if (r.getStatusCode() == 400) {
+						System.out.println("STATUS -> "+r.getStatusCode());
+						System.out.println("STATUS -> "+r.getStatusText());
+						return;
+					}else System.out.println("STATUS -> "+r.getStatusCode());
 				}
 			}
 		}

@@ -31,7 +31,7 @@ public class TestVMClusterAZURE {
 
 		
 		int smpThreadCount = 4;
-		
+	
 		String __termination_partialArray_0 = "termination-partialArray-"+__id_execution;
 		azure = new AzureClient(clientId,
 				tenantId,
