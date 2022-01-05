@@ -42,6 +42,10 @@ public class TestVMClusterAZURE {
 				__termination_partialArray_0);
 		
 		azure.VMClusterInit();
+		
+		//System.out.println(azure.checkForExecutionErrors());
+		//System.out.println(azure.checkBuildingStatus());
+		
 		azure.setupQueue(__termination_partialArray_0);
 
 		__wait_on_ch=false;

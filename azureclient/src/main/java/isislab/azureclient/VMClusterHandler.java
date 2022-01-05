@@ -1,6 +1,11 @@
 package isislab.azureclient;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -8,6 +13,7 @@ import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+import org.apache.commons.io.input.ReversedLinesFileReader;
 import org.asynchttpclient.AsyncHttpClient;
 import org.asynchttpclient.Response;
 
@@ -199,6 +205,23 @@ public class VMClusterHandler {
 	    System.out.println("   \u2022 Commands provisioning succeded");
 	}
 	
+	protected String checkBuildingStatus(String buildingOutputFileName) {
+		try {
+	        ReversedLinesFileReader reverseReader = new ReversedLinesFileReader(new File(buildingOutputFileName), Charset.forName("UTF-8"));
+	        String line;
+	        //Read last 10 lines of the file
+	        int lineToRead = 10;
+	        for (int i = 0; i < lineToRead; i++) {
+	            line = reverseReader.readLine();
+	            if (line.contains("BUILD SUCCESS")) return null;
+	        }
+		}catch (IOException e) {
+			System.out.println("Error reading the file in reverse order");
+			System.exit(1);
+		}
+		return "error";
+	}
+	
 	
 	//Building project and FLY execution
 	protected void executeFLYonVMCluster(ArrayList<String> objectInputsString, int numberOfFunctions, String uriBlob, long idExec, AsyncHttpClient httpClient, String resourceGroupName, String token, String terminationQueueName) throws Exception {
@@ -305,6 +328,14 @@ public class VMClusterHandler {
 		
 		//No need to check for command provisioning , if all results are published on the results queue the execution is went well
 	    System.out.println("   \u2022 Commands provisioning succeded");
+	}
+	
+	protected String checkForExecutionErrors(String executionErrortFileName) throws IOException {
+		Path fileName = Path.of(executionErrortFileName);
+		String executionError = Files.readString(fileName);
+		Files.deleteIfExists(fileName);
+		if(executionError.contains("Exception") || executionError.contains("Error")) return executionError;
+		else return null;
 	}
 	
 	private boolean checkVMcharacteristics(VirtualMachine vm, String vmUser, String vmImagePublisher, 

@@ -13,6 +13,8 @@ import java.net.HttpURLConnection;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.InvalidKeyException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -187,6 +189,16 @@ public class AzureClient {
 
 		CloudBlockBlob blob = container.getBlockBlobReference(file.getName());
 		blob.upload(new FileInputStream(file), file.length());
+		return blob.getUri().toString();
+	}
+	
+	public String downloadFile(String fileName)
+			throws URISyntaxException, StorageException, InvalidKeyException, IOException {
+		CloudBlobClient blobClient = cloudStorageAccount.createCloudBlobClient();
+		CloudBlobContainer container = blobClient.getContainerReference("bucket-" + id);
+		
+		CloudBlockBlob blob = container.getBlockBlobReference(fileName);
+		blob.downloadToFile(fileName);
 		return blob.getUri().toString();
 	}
 
@@ -587,26 +599,35 @@ public class AzureClient {
 	 public void buildFLYProjectOnVMCluster(String mainClass) throws Exception {
 		 vmClusterHandler.buildFLYProjectOnVMCluster(this.projectID, this.terminationQueueName, this.httpClient, this.resourceGroup.name(), getOAuthToken(), mainClass);
 	 }
-	 /*
-	 public String checkBuildingStatus() { //TO DO
-		 return vmClusterHandler.checkBuildingStatus();
-	 }*/
+
+	public String checkBuildingStatus() throws InvalidKeyException, URISyntaxException, StorageException, IOException {
+		downloadFile("buildingOutput");
+		String error = vmClusterHandler.checkBuildingStatus("buildingOutput");
+		Path fileName1 = Path.of("buildingOutput");
+		Files.deleteIfExists(fileName1);
+		if (error == null) return null;
+		else if (error.equals("error")) {
+			downloadFile("buildingError");
+			System.out.println("The building failed with the following error");
+			Path fileName2 = Path.of("buildingError");
+			String buildingError = Files.readString(fileName2);
+			Files.deleteIfExists(fileName2);
+			return buildingError;
+		}
+		return null;
+	 }
 	 
 	 public void executeFLYonVMCluster(ArrayList<String> objectInputsString, int numberOfFunctions, long idExec) throws Exception { //TO FIX
 		 vmClusterHandler.executeFLYonVMCluster(objectInputsString, numberOfFunctions, this.projectID, idExec, this.httpClient, this.resourceGroup.name(), getOAuthToken(), this.terminationQueueName);
 	 }
 	 
-	 /*
-	 public String checkForExecutionErrors() { //TO DO
-		 return vmClusterHandler.checkForExecutionErrors();
-	 }*/
 	 
-	 /*
-	 public void cleanResources() { //TO DO if needed
-		 vmClusterHandler.deleteFLYdocumentsCommand();
-	 }*/
+	 public String checkForExecutionErrors() throws InvalidKeyException, URISyntaxException, StorageException, IOException {
+		downloadFile("executionError");
+		return vmClusterHandler.checkForExecutionErrors("executionError");
+	 }
 
-	 public void deleteResourcesAllocated() { //TO CHECK
+	 public void deleteResourcesAllocated() {
 		 vmClusterHandler.deleteResourcesAllocated(this.resourceGroup.name(), false);
 	 }
 }
