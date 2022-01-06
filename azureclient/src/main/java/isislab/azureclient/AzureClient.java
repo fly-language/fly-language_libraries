@@ -196,7 +196,7 @@ public class AzureClient {
 			throws URISyntaxException, StorageException, InvalidKeyException, IOException {
 		CloudBlobClient blobClient = cloudStorageAccount.createCloudBlobClient();
 		CloudBlobContainer container = blobClient.getContainerReference("bucket-" + id);
-		
+
 		CloudBlockBlob blob = container.getBlockBlobReference(fileName);
 		blob.downloadToFile(fileName);
 		return blob.getUri().toString();
@@ -578,14 +578,15 @@ public class AzureClient {
 		
 		System.out.print("   \u2022 Uploading ZIP file to Azure...");
 		String uriBlob = uploadFile(f);
+		Files.delete(Path.of(whereami+".zip"));
 		System.out.println("Done");
 		
 		this.projectID = uriBlob;
 	}
 	 
-	 public int launchVMCluster(String vmSize, String purchasingOption, boolean persistent, int vmCount) throws InterruptedException, ExecutionException, IOException {
+	 public int launchVMCluster(String vmSize, String purchasingOption, boolean persistent, int vmCount) throws InterruptedException, ExecutionException, IOException, URISyntaxException, StorageException {
 		 vmClusterHandler.setStorageAccount(this.storageAccount);
-		 return vmClusterHandler.createVirtualMachinesCluster(this.resourceGroup.name(), vmSize, purchasingOption, persistent, vmCount, this.projectID, this.terminationQueueName, this.httpClient, getOAuthToken());
+		 return vmClusterHandler.createVirtualMachinesCluster(this.resourceGroup.name(), vmSize, purchasingOption, persistent, vmCount, this.projectID, this.terminationQueueName, this.httpClient, getOAuthToken(), this.cloudStorageAccount);
 	 }
 	 
 	 public int getVCPUsCount(String vmSize) {
@@ -608,7 +609,6 @@ public class AzureClient {
 		if (error == null) return null;
 		else if (error.equals("error")) {
 			downloadFile("buildingError");
-			System.out.println("The building failed with the following error");
 			Path fileName2 = Path.of("buildingError");
 			String buildingError = Files.readString(fileName2);
 			Files.deleteIfExists(fileName2);
@@ -617,7 +617,7 @@ public class AzureClient {
 		return null;
 	 }
 	 
-	 public void executeFLYonVMCluster(ArrayList<String> objectInputsString, int numberOfFunctions, long idExec) throws Exception { //TO FIX
+	 public void executeFLYonVMCluster(ArrayList<String> objectInputsString, int numberOfFunctions, long idExec) throws Exception {
 		 vmClusterHandler.executeFLYonVMCluster(objectInputsString, numberOfFunctions, this.projectID, idExec, this.httpClient, this.resourceGroup.name(), getOAuthToken(), this.terminationQueueName);
 	 }
 	 
@@ -627,7 +627,7 @@ public class AzureClient {
 		return vmClusterHandler.checkForExecutionErrors("executionError");
 	 }
 
-	 public void deleteResourcesAllocated() {
-		 vmClusterHandler.deleteResourcesAllocated(this.resourceGroup.name(), false);
+	 public void deleteResourcesAllocated() throws URISyntaxException, StorageException {
+		 vmClusterHandler.deleteResourcesAllocated(this.resourceGroup.name(), false, this.cloudStorageAccount);
 	 }
 }

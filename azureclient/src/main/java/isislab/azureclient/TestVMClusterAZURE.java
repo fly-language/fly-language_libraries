@@ -1,7 +1,5 @@
 package isislab.azureclient;
 
-import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedTransferQueue;
@@ -13,7 +11,8 @@ public class TestVMClusterAZURE {
 	static Boolean __wait_on_ch = true;
 	static boolean __wait_on_termination_partialArray_0 = true;
 
-	static 		long  __id_execution =  System.currentTimeMillis();
+	//static 		long  __id_execution =  System.currentTimeMillis();
+	static 		long  __id_execution =  1641397701606L;
 	static AzureClient azure;
 	
 	public static void main(String[] args) throws Exception {
@@ -44,8 +43,8 @@ public class TestVMClusterAZURE {
 		azure.VMClusterInit();
 		
 		//System.out.println(azure.checkForExecutionErrors());
-		//System.out.println(azure.checkBuildingStatus());
-		
+		System.out.println(azure.checkBuildingStatus());
+		/*
 		azure.setupQueue(__termination_partialArray_0);
 
 		__wait_on_ch=false;
@@ -99,7 +98,7 @@ public class TestVMClusterAZURE {
 			System.out.print("\n\u27A4 Waiting for download project on VM CLuster to complete...");
 			while (__termination_partialArray_ch_0.size() != (vmCount_1641303728741+vmsCreatedCount_0));
 		}
-		System.out.println("Done");
+		System.out.println("Done");*/
 		
 		//building
 		

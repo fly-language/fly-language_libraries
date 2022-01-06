@@ -1,9 +1,6 @@
 package isislab.awsclient;
 
-import java.io.File;
 import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,7 +18,6 @@ import com.amazonaws.services.ec2.model.AuthorizeSecurityGroupEgressRequest;
 import com.amazonaws.services.ec2.model.AuthorizeSecurityGroupIngressRequest;
 import com.amazonaws.services.ec2.model.CancelSpotInstanceRequestsRequest;
 import com.amazonaws.services.ec2.model.CreateKeyPairRequest;
-import com.amazonaws.services.ec2.model.CreateKeyPairResult;
 import com.amazonaws.services.ec2.model.CreateSecurityGroupRequest;
 import com.amazonaws.services.ec2.model.CreateTagsRequest;
 import com.amazonaws.services.ec2.model.DescribeInstanceStatusRequest;
@@ -37,7 +33,6 @@ import com.amazonaws.services.ec2.model.InstanceStateChange;
 import com.amazonaws.services.ec2.model.InstanceType;
 import com.amazonaws.services.ec2.model.IpPermission;
 import com.amazonaws.services.ec2.model.IpRange;
-import com.amazonaws.services.ec2.model.KeyPair;
 import com.amazonaws.services.ec2.model.KeyPairInfo;
 import com.amazonaws.services.ec2.model.Reservation;
 import com.amazonaws.services.ec2.model.SecurityGroup;
@@ -69,7 +64,7 @@ public class EC2Handler {
 	private RunCommandHandler runCommandHandler;
 	private S3Handler s3Handler;
 	private boolean persistent;
-	
+
 	private List<Instance> virtualMachines;
     
 	protected EC2Handler (AmazonEC2 ec2, AmazonIdentityManagement iamClient, RunCommandHandler runCommandHandler, S3Handler s3Handler) {
@@ -254,21 +249,7 @@ public class EC2Handler {
 		if(!exists) {
 	       	 	//The key pair with the given name does not exist, so create it
 	       	 	CreateKeyPairRequest createKeyPairRequest = new CreateKeyPairRequest().withKeyName(keyPairName);
-	       	 	CreateKeyPairResult createKeyPairResult = ec2.createKeyPair(createKeyPairRequest);
-	       	 	
-	       	 	KeyPair keyPair = new KeyPair();	    	
-	       	 	keyPair = createKeyPairResult.getKeyPair();
-	       	 	
-			   	String privateKey = keyPair.getKeyMaterial();
-				 	File keyFile = new File(keyPairName);
-				 	FileWriter fw;
-				try {
-					fw = new FileWriter(keyFile);
-			   	 	fw.write(privateKey);
-			   	 	fw.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
+	       	 	ec2.createKeyPair(createKeyPairRequest);
 		}
 	}
 	
@@ -326,9 +307,17 @@ public class EC2Handler {
 		
 		if(this.persistent && !terminateClusterNotMatching) {
 			//Don't terminate the cluster, it could be reused in the next execution
-    		System.out.println("\n\u27A4 The VM Cluster is still running and it is ready for the next execution.");
+		    System.out.println("\n\u27A4 Resource cleaning");
+
+    		System.out.print("   \\u2022 Emptying the bucket...");
     		this.s3Handler.deleteBucketWithItsContent(bucketName, true);
+		    System.out.println("Done");
+		    
+    		System.out.print("   \\u2022 Deleting document commands...");
     		this.runCommandHandler.deleteFLYdocumentsCommand();
+		    System.out.println("Done");
+
+    		System.out.println("\n\u27A4 The VM Cluster is still running and it is ready for the next execution.");
 			return;
 		}
 		
@@ -358,7 +347,9 @@ public class EC2Handler {
 			TerminateInstancesRequest terminateInstancesRequest = new TerminateInstancesRequest()
 					.withInstanceIds(instanceIdsToTerminate);
 			
-		    System.out.println("\n\u27A4 Deleting resources used...");
+		    System.out.println("\n\u27A4 Deleting resources used");
+		    
+		    System.out.print("   \u2022 Deleting virtual machines of the cluster...");
 
 			TerminateInstancesResult result = ec2.terminateInstances(terminateInstancesRequest);
 			List<InstanceStateChange> terminatingInstances = result.getTerminatingInstances();
@@ -380,7 +371,8 @@ public class EC2Handler {
 				System.out.println("   \u2022 An exception is occurred during instance termination.");
 				System.exit(1);
 			}
-			
+		    System.out.println("Done");
+
 			
 			//If the terminated instances are spot, terminate also the spot requests associated
 			boolean spotRequestsCancel = false;
@@ -408,14 +400,23 @@ public class EC2Handler {
 		}
 		
 		if( !terminateClusterNotMatching) {
+    		System.out.print("   \\u2022 Emptying the bucket...");
 			this.s3Handler.deleteBucketWithItsContent(bucketName, false);
+		    System.out.println("Done");
+
+    		System.out.print("   \\u2022 Deleting document commands...");
     		this.runCommandHandler.deleteFLYdocumentsCommand();
+		    System.out.println("Done");
+
 		}
 		
 	}
 	
 	private void deleteResourcesNotNeeded(List<String> vmsIdNotNeeded) {
 		//Terminate useless VMs in the cluster
+		System.out.println("\n\u27A4 Deleting resources not appropriate");
+ 		System.out.print("   \\u2022 Terminating VMs not needed and resource related...");
+			
 		TerminateInstancesRequest terminateInstancesRequest = new TerminateInstancesRequest()
 				.withInstanceIds(vmsIdNotNeeded);
 		
@@ -439,6 +440,7 @@ public class EC2Handler {
 			System.out.println("   \u2022 An exception is occurred during instance termination.");
 			System.exit(1);
 		}
+	    System.out.println("Done");
 	}
 	
 	private boolean checkInstanceCharacteristics(Instance i, String amiId, String instance_type, String purchasingOption) {

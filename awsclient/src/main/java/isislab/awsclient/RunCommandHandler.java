@@ -1,11 +1,17 @@
 package isislab.awsclient;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+
+import org.apache.commons.io.input.ReversedLinesFileReader;
 
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagement;
@@ -74,19 +80,31 @@ public class RunCommandHandler {
 		}
 	}
 	
-	protected String checkBuildingStatus(String bucketName) {
+	protected String checkBuildingStatus(String bucketName) throws IOException  {
 		
-		String errorOfAllVMs = "";
-		for (Map.Entry<String, String> hm : commandIds.entrySet()) {
-			//Construct the key of "stdout" file
-			String stdoutKey = "buildingStatusOutput/"+hm.getKey()+"/"+hm.getValue()+"/awsrunShellScript/building/stdout";
-			errorOfAllVMs += "Virtual Machine with instance ID -> "+ hm.getValue() + "\n"; 
-			errorOfAllVMs += s3Handler.getFileContentAsStringIfExistent(bucketName, stdoutKey);
-			errorOfAllVMs += "\n";
-			
-			if(errorOfAllVMs.contains("BUILD FAILURE")) return errorOfAllVMs;
+		//All VMs are in the same state, so I can check the building status of just one VM
+		Map.Entry<String, String> hm = commandIds.entrySet().iterator().next();
+		//Construct the key of "stdout" file
+		String stdoutKey = "buildingStatusOutput/"+hm.getKey()+"/"+hm.getValue()+"/awsrunShellScript/building/stdout";
+		String stderrKey = "buildingStatusOutput/"+hm.getKey()+"/"+hm.getValue()+"/awsrunShellScript/building/stderr";
+
+		File buildingOutputFile = s3Handler.getS3ObjectToFile(bucketName, stdoutKey);
+		if( buildingOutputFile != null) {
+			//Read the output file in reverse because the SUCCESS or FAILURE string is at the end
+			ReversedLinesFileReader reverseReader = new ReversedLinesFileReader(buildingOutputFile, Charset.forName("UTF-8"));
+	        String line;
+	        //Read last 10 lines of the file
+	        int lineToRead = 10;
+	        for (int i = 0; i < lineToRead; i++) {
+	            line = reverseReader.readLine();
+	            if (line.contains("BUILD SUCCESS")) return null;
+	        }
+	        reverseReader.close();
 		}
-		return null;
+		//Error in building
+		Path fileName1 = Path.of("buildingOutput");
+		Files.deleteIfExists(fileName1);
+		return s3Handler.getS3ObjectToString(bucketName, stderrKey);
 	}
 
 	protected void executeFLYonVMCluster(ArrayList<String> objectInputsString, int numberOfFunctions, String bucketName, 
@@ -183,7 +201,7 @@ public class RunCommandHandler {
 			//Construct the key of eventual "stderr" file
 			String stderrKey = "FLYexecutionOutput/"+hm.getKey()+"/"+hm.getValue()+"/awsrunShellScript/execution/stderr";
 			errorOfAllVMs += "Virtual Machine with instance ID -> "+ hm.getValue() + "\n"; 
-			errorOfAllVMs += s3Handler.getFileContentAsStringIfExistent(bucketName, stderrKey);
+			errorOfAllVMs += s3Handler.getS3ObjectToString(bucketName, stderrKey);
 			errorOfAllVMs += "\n";
 			
 			if(errorOfAllVMs.contains("Exception") || errorOfAllVMs.contains("Error")) return errorOfAllVMs;

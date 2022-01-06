@@ -1,5 +1,8 @@
 package isislab.awsclient;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
 
@@ -57,7 +60,7 @@ public class AWSClient {
 		this.terminationQueueUrl = terminationQueueUrl;
 	}
 	
-	 public void zipAndUploadCurrentProject() {
+	 public void zipAndUploadCurrentProject() throws IOException {
 		 
 		this.bucketName = s3Handler.createBucket("flybucketvmcluster");
 		this.projectID = s3Handler.uploadCurrentProject(this.bucketName);
@@ -79,7 +82,7 @@ public class AWSClient {
 		 runCommandHandler.buildFLYProjectOnVMCluster(this.bucketName, this.projectID, this.terminationQueueUrl, mainClass);
 	 }
 	 
-	 public String checkBuildingStatus() {
+	 public String checkBuildingStatus() throws IOException {
 		 return runCommandHandler.checkBuildingStatus(this.bucketName);
 	 }
 	 

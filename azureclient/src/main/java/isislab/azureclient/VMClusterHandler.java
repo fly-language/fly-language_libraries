@@ -3,6 +3,7 @@ package isislab.azureclient;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -26,6 +27,10 @@ import com.microsoft.azure.management.network.Network;
 import com.microsoft.azure.management.resources.fluentcore.arm.Region;
 import com.microsoft.azure.management.resources.fluentcore.model.Creatable;
 import com.microsoft.azure.management.storage.StorageAccount;
+import com.microsoft.azure.storage.CloudStorageAccount;
+import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.CloudBlobClient;
+import com.microsoft.azure.storage.blob.CloudBlobContainer;
 
 public class VMClusterHandler {
 	
@@ -207,6 +212,7 @@ public class VMClusterHandler {
 	
 	protected String checkBuildingStatus(String buildingOutputFileName) {
 		try {
+			//Read the output file in reverse because the SUCCESS or FAILURE string is at the end
 	        ReversedLinesFileReader reverseReader = new ReversedLinesFileReader(new File(buildingOutputFileName), Charset.forName("UTF-8"));
 	        String line;
 	        //Read last 10 lines of the file
@@ -403,7 +409,7 @@ public class VMClusterHandler {
 	}
 	
 	protected int createVirtualMachinesCluster(String resourceGroupName, String vmSize, String purchasingOption, 
-			boolean persistent, int vmCount, String uriBlob, String terminationQueueName, AsyncHttpClient httpClient, String token) throws InterruptedException, ExecutionException {
+			boolean persistent, int vmCount, String uriBlob, String terminationQueueName, AsyncHttpClient httpClient, String token, CloudStorageAccount cloudStorageAccount) throws InterruptedException, ExecutionException, URISyntaxException, StorageException {
 		
     	if (!checkCorrectVmSize(vmSize)) System.exit(1);  //VM Size not correct
 	    if( purchasingOption.equals("spot")) {    	
@@ -426,7 +432,7 @@ public class VMClusterHandler {
     	if ( persistenceVMCluster.equals("terminate")) {
     		//Terminate the existent VM cluster because not appropriate
     		System.out.println("\n\u27A4 The existent VM Cluster hasn't the characteristics requested, so it will be terminated, and then will be created a new one.");
-    		deleteResourcesAllocated(resourceGroupName, true);
+    		deleteResourcesAllocated(resourceGroupName, true, cloudStorageAccount);
     	} else if (persistenceVMCluster.equals("reuse")) {
     		//An existent VM Cluster with requested characteristics exists so use it
     		System.out.println("\n\u27A4 Using existent VM Cluster");
@@ -500,17 +506,28 @@ public class VMClusterHandler {
 	}
 
 	
-	protected void deleteResourcesAllocated(String resourceGroupName, boolean terminateClusterNotMatching) {
+	protected void deleteResourcesAllocated(String resourceGroupName, boolean terminateClusterNotMatching, CloudStorageAccount cloudStorageAccount) throws URISyntaxException, StorageException {
 					
 		if(this.persistent && !terminateClusterNotMatching) {
 			//Don't terminate the cluster, it could be reused in the next execution
-    		System.out.println("\n\u27A4 The VM Cluster is still running and it is ready for the next execution.");
+		    System.out.println("\n\u27A4 Resource cleaning");
+		    
+		    //Empty the storage container
+    		System.out.print("   \\u2022 Emptying the storage container...");
+    		CloudBlobClient blobClient = cloudStorageAccount.createCloudBlobClient();
+    		CloudBlobContainer container = blobClient.getContainerReference("bucket-" + id);
+    		container.delete();
+		    System.out.println("Done");
+		    
+    		System.out.println("   \\u2022 The VM Cluster is still running and it is ready for the next execution.");
+    		
 			return;
 		}
 		
 		if(terminateClusterNotMatching) {
 			//Terminate VMs in the cluster and resource related but leave active ResourceGroup and StorageAccount
-		    System.out.print("\n\u27A4 Deleting resources not appropriate...");
+		    System.out.println("\n\u27A4 Deleting resources not appropriate");
+    		System.out.print("   \\u2022 Terminating VMs not needed and resource related...");
 			for(VirtualMachine vm : azure.virtualMachines().list()) {
 				azure.virtualMachines().deleteById(vm.id()); //Delete VM
 				azure.networkInterfaces().deleteById(vm.primaryNetworkInterfaceId()); //Delete VM Network Interface
@@ -520,9 +537,10 @@ public class VMClusterHandler {
 			return;
 		}
 			
-	    System.out.println("\n\u27A4 Deleting resources used...");
+	    System.out.println("\n\u27A4 Deleting resources used");
 		
 		//Delete Resource group that consists of VMs and related resources
+	    System.out.println("   \u2022 Deleting resource group with all resources used...");
 		azure.resourceGroups().deleteByName(resourceGroupName);
 		
 	    System.out.println("   \u2022 The VM cluster and related resources are successfully deleted.");

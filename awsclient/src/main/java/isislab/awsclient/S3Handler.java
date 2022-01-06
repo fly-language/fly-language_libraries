@@ -3,13 +3,18 @@ package isislab.awsclient;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.List;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.Bucket;
+import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
@@ -59,7 +64,7 @@ public class S3Handler {
         return named_bucket;
 	}
 	
-	protected String uploadCurrentProject(String bucketName) {
+	protected String uploadCurrentProject(String bucketName) throws IOException {
 		
 		String whereami = "";
 		System.out.println("\n\u27A4 ZIP generation and upload to AWS S3");
@@ -91,6 +96,7 @@ public class S3Handler {
 		
 		System.out.print("   \u2022 Uploading ZIP file to AWS S3...");
 		s3.putObject(new PutObjectRequest(bucketName, f.getName(), f));
+		Files.delete(Path.of(whereami+".zip"));
 		System.out.println("Done");
 		
 		return whereami;
@@ -155,7 +161,15 @@ public class S3Handler {
 		 }
 	 }
 
-	 protected String getFileContentAsStringIfExistent(String bucketName, String objectKey) {
+	 protected File getS3ObjectToFile(String bucketName, String objectKey) throws IOException {
+		 if (s3.doesObjectExist(bucketName, objectKey)) {
+			InputStream in = s3.getObject(new GetObjectRequest(bucketName, objectKey)).getObjectContent();
+			Files.copy(in, Paths.get("buildingOutput"));
+			return new File("buildingOutput");
+		 }else return null;
+	 }
+	 
+	 protected String getS3ObjectToString(String bucketName, String objectKey) {
 		 if (s3.doesObjectExist(bucketName, objectKey)) {
 			 return s3.getObjectAsString(bucketName, objectKey);
 		 }else return null;
