@@ -309,11 +309,11 @@ public class EC2Handler {
 			//Don't terminate the cluster, it could be reused in the next execution
 		    System.out.println("\n\u27A4 Resource cleaning");
 
-    		System.out.print("   \\u2022 Emptying the bucket...");
+    		System.out.print("   \u2022 Emptying the bucket...");
     		this.s3Handler.deleteBucketWithItsContent(bucketName, true);
 		    System.out.println("Done");
 		    
-    		System.out.print("   \\u2022 Deleting document commands...");
+    		System.out.print("   \u2022 Deleting document commands...");
     		this.runCommandHandler.deleteFLYdocumentsCommand();
 		    System.out.println("Done");
 
@@ -400,11 +400,11 @@ public class EC2Handler {
 		}
 		
 		if( !terminateClusterNotMatching) {
-    		System.out.print("   \\u2022 Emptying the bucket...");
+    		System.out.print("   \u2022 Emptying the bucket...");
 			this.s3Handler.deleteBucketWithItsContent(bucketName, false);
 		    System.out.println("Done");
 
-    		System.out.print("   \\u2022 Deleting document commands...");
+    		System.out.print("   \u2022 Deleting document commands...");
     		this.runCommandHandler.deleteFLYdocumentsCommand();
 		    System.out.println("Done");
 
@@ -415,7 +415,7 @@ public class EC2Handler {
 	private void deleteResourcesNotNeeded(List<String> vmsIdNotNeeded) {
 		//Terminate useless VMs in the cluster
 		System.out.println("\n\u27A4 Deleting resources not appropriate");
- 		System.out.print("   \\u2022 Terminating VMs not needed and resource related...");
+ 		System.out.print("   \u2022 Terminating VMs not needed and resource related...");
 			
 		TerminateInstancesRequest terminateInstancesRequest = new TerminateInstancesRequest()
 				.withInstanceIds(vmsIdNotNeeded);

@@ -83,7 +83,7 @@ public class RunCommandHandler {
 	protected String checkBuildingStatus(String bucketName) throws IOException  {
 		
 		//All VMs are in the same state, so I can check the building status of just one VM
-		Map.Entry<String, String> hm = commandIds.entrySet().iterator().next();
+		Map.Entry<String, String> hm = commandIds.entrySet().stream().findFirst().get();
 		//Construct the key of "stdout" file
 		String stdoutKey = "buildingStatusOutput/"+hm.getKey()+"/"+hm.getValue()+"/awsrunShellScript/building/stdout";
 		String stderrKey = "buildingStatusOutput/"+hm.getKey()+"/"+hm.getValue()+"/awsrunShellScript/building/stderr";
@@ -196,17 +196,15 @@ public class RunCommandHandler {
 	
 	protected String checkForExecutionErrors(String bucketName) {
 		
-		String errorOfAllVMs = "";
-		for (Map.Entry<String, String> hm : commandIds.entrySet()) {
-			//Construct the key of eventual "stderr" file
-			String stderrKey = "FLYexecutionOutput/"+hm.getKey()+"/"+hm.getValue()+"/awsrunShellScript/execution/stderr";
-			errorOfAllVMs += "Virtual Machine with instance ID -> "+ hm.getValue() + "\n"; 
-			errorOfAllVMs += s3Handler.getS3ObjectToString(bucketName, stderrKey);
-			errorOfAllVMs += "\n";
-			
-			if(errorOfAllVMs.contains("Exception") || errorOfAllVMs.contains("Error")) return errorOfAllVMs;
-		}
-		return null;
+		//All VMs are in the same state, so I can check the execution status of just one VM
+		Map.Entry<String, String> hm = commandIds.entrySet().stream().findFirst().get();
+		//Construct the key "stderr" file
+		String stderrKey = "FLYexecutionOutput/"+hm.getKey()+"/"+hm.getValue()+"/awsrunShellScript/execution/stderr";
+		
+		String error = s3Handler.getS3ObjectToString(bucketName, stderrKey);
+		
+		if(error.contains("Exception") || error.contains("Error")) return error;
+		else return null;
 	}
 
 	protected void deleteFLYdocumentsCommand() {
