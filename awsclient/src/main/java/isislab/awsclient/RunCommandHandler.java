@@ -29,7 +29,7 @@ public class RunCommandHandler {
 	private S3Handler s3Handler;
 	
 	private List<Instance> virtualMachines;
-	private HashMap<String, String> commandIds = new HashMap<>();
+	private HashMap<String, String> commandIds;
 
 	protected RunCommandHandler(AWSSimpleSystemsManagement ssm, S3Handler s3Handler) {
 		this.ssm = ssm;
@@ -188,10 +188,9 @@ public class RunCommandHandler {
 		}
 		
 		SendCommandResult commandResult = ssm.sendCommand(sendCommandRequest);
-		if (folderBucketOutput.equals("execution")) {
-			//store info about command id for the next check of errors
-			commandIds.put(commandResult.getCommand().getCommandId(), instanceId);
-		}
+		//store info about command id for the next check of errors
+		commandIds = new HashMap<>();
+		commandIds.put(commandResult.getCommand().getCommandId(), instanceId);
 	}
 	
 	protected String checkForExecutionErrors(String bucketName) {
