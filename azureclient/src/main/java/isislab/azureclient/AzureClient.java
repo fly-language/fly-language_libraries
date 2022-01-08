@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
@@ -214,18 +215,29 @@ public class AzureClient {
 
 	public String peekFromQueue(String name) throws Exception {
 		name = name.toLowerCase();
-		CloudQueueMessage receivedMessage = queues.get(name).retrieveMessage();
-		String result = receivedMessage.getMessageContentAsString();
-		queues.get(name).deleteMessage(receivedMessage);
+		CloudQueueMessage message = queues.get(name).retrieveMessage();
+		String msg = message.getMessageContentAsString();
+		if( Base64.isBase64(msg)) {
+			//The msg retrieved is Base64 encoded so decode it before return it
+			byte[] decodedBytes = Base64.decodeBase64(msg);
+			msg = new String(decodedBytes);
+		}
+		queues.get(name).deleteMessage(message);
 		System.out.println("get message from " + name);
-		return result;
+		return msg;
 	}
 
 	public List<String> peeksFromQueue(String name, int n) throws Exception {
 		name = name.toLowerCase();
 		List<String> values = new ArrayList<>();
 		for (CloudQueueMessage message : queues.get(name).retrieveMessages(n)) {
-			values.add(message.getMessageContentAsString());
+			String msg = message.getMessageContentAsString();
+			if( Base64.isBase64(msg)) {
+				//The msg retrieved is Base64 encoded so decode it before return it
+				byte[] decodedBytes = Base64.decodeBase64(msg);
+				msg = new String(decodedBytes);
+			}
+			values.add(msg);
 			queues.get(name).deleteMessage(message);
 		}
 		return values;
