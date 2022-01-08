@@ -207,9 +207,9 @@ public class AzureClient {
 		name = name.toLowerCase();
 		CloudQueueClient queueClient = cloudStorageAccount.createCloudQueueClient();
 		CloudQueue queue = queueClient.getQueueReference(name);
-
-		queue.create();
+		
 		queue.setShouldEncodeMessage(false);
+		queue.create();
 		queues.put(name, queue);
 	}
 
@@ -236,21 +236,6 @@ public class AzureClient {
 		name = name.toLowerCase();
 		CloudQueueMessage sentMessage = new CloudQueueMessage(value);
 		queues.get(name).addMessage(sentMessage);
-	}
-	
-	public void setupQueue(String name) throws Exception {
-		
-		name = name.toLowerCase();
-
-		if( !queues.containsKey(name)) {
-			//queue not existent or not yet added to HasMap of queues
-			CloudQueueClient queueClient = cloudStorageAccount.createCloudQueueClient();
-			CloudQueue queue = queueClient.getQueueReference(name);
-			
-			queue.createIfNotExists();
-			queue.setShouldEncodeMessage(false);
-			queues.put(name, queue);
-		}
 	}
 	
 	public long getQueueLength(String name) throws Exception {
@@ -606,17 +591,9 @@ public class AzureClient {
 	public String checkBuildingStatus() throws InvalidKeyException, URISyntaxException, StorageException, IOException {
 		downloadFile("buildingOutput");
 		String error = vmClusterHandler.checkBuildingStatus("buildingOutput");
-		Path fileName1 = Path.of("buildingOutput");
-		Files.deleteIfExists(fileName1);
-		if (error == null) return null;
-		else if (error.equals("error")) {
-			downloadFile("buildingError");
-			Path fileName2 = Path.of("buildingError");
-			String buildingError = Files.readString(fileName2);
-			Files.deleteIfExists(fileName2);
-			return buildingError;
-		}
-		return null;
+		Path fileName = Path.of("buildingOutput");
+		Files.deleteIfExists(fileName);
+		return error;
 	 }
 	 
 	 public void executeFLYonVMCluster(ArrayList<String> objectInputsString, int numberOfFunctions, long idExec) throws Exception {

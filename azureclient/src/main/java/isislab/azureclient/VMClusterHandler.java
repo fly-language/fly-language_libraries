@@ -15,8 +15,13 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import org.apache.commons.io.input.ReversedLinesFileReader;
+import org.asynchttpclient.AsyncHandler;
 import org.asynchttpclient.AsyncHttpClient;
+import org.asynchttpclient.HttpResponseBodyPart;
+import org.asynchttpclient.HttpResponseStatus;
+import org.asynchttpclient.ListenableFuture;
 import org.asynchttpclient.Response;
+import org.asynchttpclient.AsyncHandler.State;
 
 import com.microsoft.azure.management.Azure;
 import com.microsoft.azure.management.compute.VirtualMachine;
@@ -31,6 +36,8 @@ import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobClient;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
+
+import io.netty.handler.codec.http.HttpHeaders;
 
 public class VMClusterHandler {
 	
@@ -98,99 +105,33 @@ public class VMClusterHandler {
   		return base64UserData;
 	}
 	
-	//Download the ZIP of the project to execute from Azure Storage Account Container
-	protected void downloadExecutionFileOnVMCluster(String resourceGroupName, String uriBlob, String terminationQueueName, AsyncHttpClient httpClient, String token) throws InterruptedException, ExecutionException {
+	private void waitUntilNoCommandsAreInProgress(String resourceGroupName, AsyncHttpClient httpClient, String token) throws InterruptedException, ExecutionException{
 		
-	    System.out.println("\n\u27A4 Downlaoding necessary files on VMs of the cluster for FLY execution...");
-	    
-  		//extract project name
-  		String projectName = uriBlob.substring(uriBlob.lastIndexOf("/")+1);
-  		
+		//One command at time can be executed on a VM, so before running operation commands ensure with dummy commands that all
+		//previous commands are terminated
 		final String commandBody = "{\"commandId\": \"RunShellScript\",\"script\": ["
-				+ "\"cd ../../../../../../home/"+FLY_VM_USER+"\","
-				+ "\"curl "+uriBlob+" --output "+projectName+" 2> downloadError 1> downloadOutput\","
-				+ "\"az storage blob upload -c bucket-"+id+" -f downloadError --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
-				+ "\"az storage blob upload -c bucket-"+id+" -f downloadOutput --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
-				+ "\"az storage message put --content downloadTerminated --queue-name "+terminationQueueName+" --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\"]"
-				+"}";		
-		
-		List<Response> responses = new ArrayList<>();
-		
-		for (VirtualMachine vm : this.virtualMachines) {
-		    System.out.println("   \u2022 Downloading on VM "+vm.name());
-
-	  		//Asynchronous run command to each VM of the cluster
-			Future<Response> whenResponse = httpClient.preparePost("https://management.azure.com/subscriptions/"+this.subscriptionId+"/resourceGroups/"+resourceGroupName+"/providers/Microsoft.Compute/virtualMachines/"+vm.name()+"/runCommand?api-version=2020-12-01")
-						.addHeader("Authorization", "Bearer " + token)	
-	  					.addHeader("Content-Type", "application/json")
-						.setBody(commandBody)
-						.execute();
-			
-			responses.add(whenResponse.get());	
-		}
-		
-		//One command at time can be executed on a VM, so before running next commands ensure these commands are terminated
-		boolean commandsInProgress = true;
-		while (commandsInProgress) {
-			for (Response r : responses) {
-				if(r.getStatusCode() == 202) { //(Accepted)
-					Future<Response> whenResponse = httpClient.prepareGet(r.getHeader("azure-asyncoperation"))
-							.addHeader("Authorization", "Bearer " + token)	
-		  					.addHeader("Content-Type", "application/json")
-							.execute();
-					
-					if ( whenResponse.get().getResponseBody().contains("Provisioning succeeded")) commandsInProgress = false;
-					else commandsInProgress = true;
-				}else {
-					System.out.println("STATUS -> "+r.getStatusCode());
-				}
-			}
-		}
-
-	    System.out.println("   \u2022 Commands provisioning succeded");
-	}
-	
-	protected void buildFLYProjectOnVMCluster(String uriBlob, String terminationQueueName, AsyncHttpClient httpClient, String resourceGroupName, String token, String mainClass) throws InterruptedException, ExecutionException {
-		
-	    System.out.println("\n\u27A4 Project Building...");
-
-  		//extract project name
-  		String projectName = uriBlob.substring(uriBlob.lastIndexOf("/")+1);
-  		//trim the extension
-  		projectName = projectName.substring(0, projectName.lastIndexOf("."));
-  		
-		final String commandBody = "{\"commandId\": \"RunShellScript\",\"script\": ["
-				+ "\"cd ../../../../../../home/"+FLY_VM_USER+"\","
-				+ "\"unzip "+projectName+"\","
-				+ "\"cd "+projectName+"\","
-				+ "\"mvn -T 1C install -Dmaven.test.skip -DskipTests -Dapp.mainClass="+mainClass+" 2> buildingError 1> buildingOutput\","
-				+ "\"az storage blob upload -c bucket-"+id+" -f buildingError --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
-				+ "\"az storage blob upload -c bucket-"+id+" -f buildingOutput --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
-				+ "\"az storage message put --content buildingTerminated --queue-name "+terminationQueueName+" --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\"]"
+				+ "\"cd ../../../../../../home/"+FLY_VM_USER+"\"]"
 				+"}";
 		
 		List<Response> responses = new ArrayList<>();
 
-		for (VirtualMachine vm : this.virtualMachines) {
-		    System.out.println("   \u2022 Building on VM "+vm.name());
-	    	while (true) {
-		    	Future<Response> whenResponse = httpClient.preparePost("https://management.azure.com/subscriptions/"+this.subscriptionId+"/resourceGroups/"+resourceGroupName+"/providers/Microsoft.Compute/virtualMachines/"+vm.name()+"/runCommand?api-version=2020-12-01")
-							.addHeader("Authorization", "Bearer " + token)	
-		  					.addHeader("Content-Type", "application/json")
-							.setBody(commandBody)
-							.execute();
-		    	
-				if (whenResponse.get().getStatusCode() == 409) {
-		    		//Conflict with a previous command, retry again in a bit
-		    		Thread.sleep(1000);
-		    	}else {
-					responses.add(whenResponse.get());
+		for (int i=0; i< this.virtualMachines.size(); i++) {
+			while(true) {
+				Future<Response> whenResponse = httpClient.preparePost("https://management.azure.com/subscriptions/"+this.subscriptionId+"/resourceGroups/"+resourceGroupName+"/providers/Microsoft.Compute/virtualMachines/"+this.virtualMachines.get(i).name()+"/runCommand?api-version=2020-12-01")
+						.addHeader("Authorization", "Bearer " + token)	
+	  					.addHeader("Content-Type", "application/json")
+						.setBody(commandBody)
+						.execute();
+				
+				Response r = whenResponse.get();
+				if (r.getStatusCode() != 409) {
+					responses.add(r);
 					break;
-		    	}
-	    	}
+				};
+			}
 		}
 		
-		//One command at time can be executed on a VM, so before running next commands ensure these commands are terminated
+		//Ensure commands terminated
 		boolean commandsInProgress = true;
 		while (commandsInProgress) {
 			for (Response r : responses) {
@@ -207,25 +148,87 @@ public class VMClusterHandler {
 				}
 			}
 		}
-	    System.out.println("   \u2022 Commands provisioning succeded");
+		
+	}
+	
+	//Download the ZIP of the project to execute from Azure Storage Account Container
+	protected void downloadExecutionFileOnVMCluster(String resourceGroupName, String uriBlob, String terminationQueueName, AsyncHttpClient httpClient, String token) throws InterruptedException, ExecutionException {
+		
+	    System.out.println("\n\u27A4 Downlaoding necessary files on VMs of the cluster for FLY execution...");
+	    
+  		//extract project name
+  		String projectName = uriBlob.substring(uriBlob.lastIndexOf("/")+1);
+  		
+		final String commandBody = "{\"commandId\": \"RunShellScript\",\"script\": ["
+				+ "\"cd ../../../../../../home/"+FLY_VM_USER+"\","
+				+ "\"curl "+uriBlob+" --output "+projectName+" 2> downloadError 1> downloadOutput\","
+				+ "\"az storage blob upload -c bucket-"+id+" -f downloadError --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
+				+ "\"az storage blob upload -c bucket-"+id+" -f downloadOutput --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
+				+ "\"az storage message put --content downloadTerminated --queue-name "+terminationQueueName+" --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\"]"
+				+"}";		
+		
+		for (int i=0; i< this.virtualMachines.size(); i++) {
+			System.out.println("   \u2022 Downloading on VM "+this.virtualMachines.get(i).name());
+			httpClient.preparePost("https://management.azure.com/subscriptions/"+this.subscriptionId+"/resourceGroups/"+resourceGroupName+"/providers/Microsoft.Compute/virtualMachines/"+this.virtualMachines.get(i).name()+"/runCommand?api-version=2020-12-01")
+					.addHeader("Authorization", "Bearer " + token)	
+					.addHeader("Content-Type", "application/json")
+					.addHeader("Connection", "keep-alive")
+					.setBody(commandBody)
+					.execute();
+		}
+	}
+	
+	protected void buildFLYProjectOnVMCluster(String uriBlob, String terminationQueueName, AsyncHttpClient httpClient, String resourceGroupName, String token, String mainClass) throws InterruptedException, ExecutionException {
+		
+	    System.out.println("\n\u27A4 Project Building...");
+	    
+	    waitUntilNoCommandsAreInProgress(resourceGroupName, httpClient, token);
+
+  		//extract project name
+  		String projectName = uriBlob.substring(uriBlob.lastIndexOf("/")+1);
+  		//trim the extension
+  		projectName = projectName.substring(0, projectName.lastIndexOf("."));
+  		
+		final String commandBody = "{\"commandId\": \"RunShellScript\",\"script\": ["
+				+ "\"cd ../../../../../../home/"+FLY_VM_USER+"\","
+				+ "\"unzip "+projectName+"\","
+				+ "\"cd "+projectName+"\","
+				+ "\"mvn -T 1C install -Dmaven.test.skip -DskipTests -Dapp.mainClass="+mainClass+" 2> buildingError 1> buildingOutput\","
+				+ "\"az storage blob upload -c bucket-"+id+" -f buildingError --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
+				+ "\"az storage blob upload -c bucket-"+id+" -f buildingOutput --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
+				+ "\"az storage message put --content buildingTerminated --queue-name "+terminationQueueName+" --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\"]"
+				+"}";
+		
+		for (int i=0; i< this.virtualMachines.size(); i++) {
+			System.out.println("   \u2022 Building on VM "+this.virtualMachines.get(i).name());
+			httpClient.preparePost("https://management.azure.com/subscriptions/"+this.subscriptionId+"/resourceGroups/"+resourceGroupName+"/providers/Microsoft.Compute/virtualMachines/"+this.virtualMachines.get(i).name()+"/runCommand?api-version=2020-12-01")
+					.addHeader("Authorization", "Bearer " + token)	
+  					.addHeader("Content-Type", "application/json")
+  					.addHeader("Connection", "keep-alive")
+					.setBody(commandBody)
+					.execute();
+		}
+
 	}
 	
 	protected String checkBuildingStatus(String buildingOutputFileName) {
+        String outputLog = "";
 		try {
 			//Read the output file in reverse because the SUCCESS or FAILURE string is at the end
 	        ReversedLinesFileReader reverseReader = new ReversedLinesFileReader(new File(buildingOutputFileName), Charset.forName("UTF-8"));
 	        String line;
-	        //Read last 10 lines of the file
-	        int lineToRead = 10;
-	        for (int i = 0; i < lineToRead; i++) {
+	        //Read last 30 lines of the file
+	        int lineToRead = 30;
+	        for (int i = 0; i <= lineToRead; i++) {
 	            line = reverseReader.readLine();
 	            if (line.contains("BUILD SUCCESS")) return null;
+	            else outputLog += (lineToRead - i) + " "+ line + "\n";
 	        }
 		}catch (IOException e) {
 			System.out.println("Error reading the file in reverse order");
 			System.exit(1);
 		}
-		return "error";
+		return outputLog;
 	}
 	
 	
@@ -238,7 +241,8 @@ public class VMClusterHandler {
   		projectName = projectName.substring(0, projectName.lastIndexOf("."));
 
 		int vmCount = this.virtualMachines.size();
-		List<Response> responses = new ArrayList<>();
+		
+	    waitUntilNoCommandsAreInProgress(resourceGroupName, httpClient, token);
 
 		//FLY execution
 		System.out.println("\n\u27A4 Fly execution...");
@@ -292,48 +296,13 @@ public class VMClusterHandler {
 			}
 			
 			System.out.println("   \u2022 Executing on VM "+this.virtualMachines.get(i).name());
-	    	while (true) {
-		    	Future<Response> whenResponse = httpClient.preparePost("https://management.azure.com/subscriptions/"+this.subscriptionId+"/resourceGroups/"+resourceGroupName+"/providers/Microsoft.Compute/virtualMachines/"+this.virtualMachines.get(i).name()+"/runCommand?api-version=2020-12-01")
-							.addHeader("Authorization", "Bearer " + token)	
-		  					.addHeader("Content-Type", "application/json")
-							.setBody(commandBody)
-							.execute();
-		    	
-		    	if (whenResponse.get().getStatusCode() == 409) {
-		    		//Conflict with a previous command, retry again in a bit
-		    		Thread.sleep(1000);
-		    	}else {
-					responses.add(whenResponse.get());
-					break;
-		    	}
-	    	}
+			httpClient.preparePost("https://management.azure.com/subscriptions/"+this.subscriptionId+"/resourceGroups/"+resourceGroupName+"/providers/Microsoft.Compute/virtualMachines/"+this.virtualMachines.get(i).name()+"/runCommand?api-version=2020-12-01")
+					.addHeader("Authorization", "Bearer " + token)	
+					.addHeader("Content-Type", "application/json")
+					.addHeader("Connection", "keep-alive")
+					.setBody(commandBody)
+					.execute();
 		}
-		
-    	//Ensure the commands are succeed
-    	boolean commandsInProgress = true;
-		while (commandsInProgress) {
-			for (Response r : responses) {
-				if(r.getStatusCode() == 202) {
-					Future<Response> whenResponse = httpClient.prepareGet(r.getHeader("azure-asyncoperation"))
-							.addHeader("Authorization", "Bearer " + token)	
-		  					.addHeader("Content-Type", "application/json")
-							.execute();
-					
-					if ( whenResponse.get().getResponseBody().contains("Provisioning succeeded")) commandsInProgress = false;
-					else commandsInProgress = true;
-				}else {
-					if (r.getStatusCode() == 400) {
-						System.out.println("STATUS -> "+r.getStatusCode());
-						System.out.println("STATUS -> "+r.getStatusText());
-						return;
-					}else System.out.println("STATUS -> "+r.getStatusCode());
-				}
-			}
-		}
-
-		
-		//No need to check for command provisioning , if all results are published on the results queue the execution is went well
-	    System.out.println("   \u2022 Commands provisioning succeded");
 	}
 	
 	protected String checkForExecutionErrors(String executionErrortFileName) throws IOException {
@@ -513,13 +482,13 @@ public class VMClusterHandler {
 		    System.out.println("\n\u27A4 Resource cleaning");
 		    
 		    //Empty the storage container
-    		System.out.print("   \\u2022 Emptying the storage container...");
+    		System.out.print("   \u2022 Emptying the storage container...");
     		CloudBlobClient blobClient = cloudStorageAccount.createCloudBlobClient();
     		CloudBlobContainer container = blobClient.getContainerReference("bucket-" + id);
     		container.delete();
 		    System.out.println("Done");
 		    
-    		System.out.println("   \\u2022 The VM Cluster is still running and it is ready for the next execution.");
+    		System.out.println("   \u2022 The VM Cluster is still running and it is ready for the next execution.");
     		
 			return;
 		}
@@ -527,7 +496,7 @@ public class VMClusterHandler {
 		if(terminateClusterNotMatching) {
 			//Terminate VMs in the cluster and resource related but leave active ResourceGroup and StorageAccount
 		    System.out.println("\n\u27A4 Deleting resources not appropriate");
-    		System.out.print("   \\u2022 Terminating VMs not needed and resource related...");
+    		System.out.print("   \u2022 Terminating VMs not needed and resource related...");
 			for(VirtualMachine vm : azure.virtualMachines().list()) {
 				azure.virtualMachines().deleteById(vm.id()); //Delete VM
 				azure.networkInterfaces().deleteById(vm.primaryNetworkInterfaceId()); //Delete VM Network Interface
