@@ -217,11 +217,6 @@ public class AzureClient {
 		name = name.toLowerCase();
 		CloudQueueMessage message = queues.get(name).retrieveMessage();
 		String msg = message.getMessageContentAsString();
-		if( Base64.isBase64(msg)) {
-			//The msg retrieved is Base64 encoded so decode it before return it
-			byte[] decodedBytes = Base64.decodeBase64(msg);
-			msg = new String(decodedBytes);
-		}
 		queues.get(name).deleteMessage(message);
 		System.out.println("get message from " + name);
 		return msg;
@@ -231,13 +226,7 @@ public class AzureClient {
 		name = name.toLowerCase();
 		List<String> values = new ArrayList<>();
 		for (CloudQueueMessage message : queues.get(name).retrieveMessages(n)) {
-			String msg = message.getMessageContentAsString();
-			if( Base64.isBase64(msg)) {
-				//The msg retrieved is Base64 encoded so decode it before return it
-				byte[] decodedBytes = Base64.decodeBase64(msg);
-				msg = new String(decodedBytes);
-			}
-			values.add(msg);
+			values.add(message.getMessageContentAsString());
 			queues.get(name).deleteMessage(message);
 		}
 		return values;
@@ -259,6 +248,7 @@ public class AzureClient {
 			CloudQueue queue = queueClient.getQueueReference(name);
 			
 			queue.createIfNotExists();
+			queue.setShouldEncodeMessage(false);
 			queues.put(name, queue);
 		}
 	}
