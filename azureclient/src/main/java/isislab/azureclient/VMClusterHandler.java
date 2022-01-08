@@ -104,53 +104,6 @@ public class VMClusterHandler {
   		}
   		return base64UserData;
 	}
-	
-	private void waitUntilNoCommandsAreInProgress(String resourceGroupName, AsyncHttpClient httpClient, String token) throws InterruptedException, ExecutionException{
-		
-		//One command at time can be executed on a VM, so before running operation commands ensure with dummy commands that all
-		//previous commands are terminated
-		final String commandBody = "{\"commandId\": \"RunShellScript\",\"script\": ["
-				+ "\"cd ../../../../../../home/"+FLY_VM_USER+"\"]"
-				+"}";
-		
-		List<Response> responses = new ArrayList<>();
-
-		for (int i=0; i< this.virtualMachines.size(); i++) {
-			while(true) {
-				Future<Response> whenResponse = httpClient.preparePost("https://management.azure.com/subscriptions/"+this.subscriptionId+"/resourceGroups/"+resourceGroupName+"/providers/Microsoft.Compute/virtualMachines/"+this.virtualMachines.get(i).name()+"/runCommand?api-version=2020-12-01")
-						.addHeader("Authorization", "Bearer " + token)	
-	  					.addHeader("Content-Type", "application/json")
-						.setBody(commandBody)
-						.execute();
-				
-				Response r = whenResponse.get();
-				if (r.getStatusCode() != 409) {
-					responses.add(r);
-					break;
-				};
-			}
-		}
-		
-		//Ensure commands terminated
-		boolean commandsInProgress = true;
-		while (commandsInProgress) {
-			for (Response r : responses) {
-				if(r.getStatusCode() == 202) {
-					Future<Response> whenResponse = httpClient.prepareGet(r.getHeader("azure-asyncoperation"))
-							.addHeader("Authorization", "Bearer " + token)	
-		  					.addHeader("Content-Type", "application/json")
-							.execute();
-					
-					if ( whenResponse.get().getResponseBody().contains("Provisioning succeeded")) commandsInProgress = false;
-					else commandsInProgress = true;
-				}else {
-					System.out.println("STATUS -> "+r.getStatusCode());
-				}
-			}
-		}
-		
-	}
-	
 	//Download the ZIP of the project to execute from Azure Storage Account Container
 	protected void downloadExecutionFileOnVMCluster(String resourceGroupName, String uriBlob, String terminationQueueName, AsyncHttpClient httpClient, String token) throws InterruptedException, ExecutionException {
 		
@@ -167,22 +120,45 @@ public class VMClusterHandler {
 				+ "\"az storage message put --content downloadTerminated --queue-name "+terminationQueueName+" --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\"]"
 				+"}";		
 		
-		for (int i=0; i< this.virtualMachines.size(); i++) {
-			System.out.println("   \u2022 Downloading on VM "+this.virtualMachines.get(i).name());
-			httpClient.preparePost("https://management.azure.com/subscriptions/"+this.subscriptionId+"/resourceGroups/"+resourceGroupName+"/providers/Microsoft.Compute/virtualMachines/"+this.virtualMachines.get(i).name()+"/runCommand?api-version=2020-12-01")
-					.addHeader("Authorization", "Bearer " + token)	
-					.addHeader("Content-Type", "application/json")
-					.addHeader("Connection", "keep-alive")
-					.setBody(commandBody)
-					.execute();
+		List<Response> responses = new ArrayList<>();
+		
+		for (VirtualMachine vm : this.virtualMachines) {
+		    System.out.println("   \u2022 Downloading on VM "+vm.name());
+
+	  		//Asynchronous run command to each VM of the cluster
+			Future<Response> whenResponse = httpClient.preparePost("https://management.azure.com/subscriptions/"+this.subscriptionId+"/resourceGroups/"+resourceGroupName+"/providers/Microsoft.Compute/virtualMachines/"+vm.name()+"/runCommand?api-version=2020-12-01")
+						.addHeader("Authorization", "Bearer " + token)	
+	  					.addHeader("Content-Type", "application/json")
+						.setBody(commandBody)
+						.execute();
+			
+			responses.add(whenResponse.get());	
 		}
+		
+		//One command at time can be executed on a VM, so before running next commands ensure these commands are terminated
+		boolean commandsInProgress = true;
+		while (commandsInProgress) {
+			for (Response r : responses) {
+				if(r.getStatusCode() == 202) { //(Accepted)
+					Future<Response> whenResponse = httpClient.prepareGet(r.getHeader("azure-asyncoperation"))
+							.addHeader("Authorization", "Bearer " + token)	
+		  					.addHeader("Content-Type", "application/json")
+							.execute();
+					
+					if ( whenResponse.get().getResponseBody().contains("Provisioning succeeded")) commandsInProgress = false;
+					else commandsInProgress = true;
+				}else {
+					System.out.println("STATUS -> "+r.getStatusCode());
+				}
+			}
+		}
+
+	    System.out.println("   \u2022 Commands provisioning succeded");
 	}
 	
 	protected void buildFLYProjectOnVMCluster(String uriBlob, String terminationQueueName, AsyncHttpClient httpClient, String resourceGroupName, String token, String mainClass) throws InterruptedException, ExecutionException {
 		
 	    System.out.println("\n\u27A4 Project Building...");
-	    
-	    waitUntilNoCommandsAreInProgress(resourceGroupName, httpClient, token);
 
   		//extract project name
   		String projectName = uriBlob.substring(uriBlob.lastIndexOf("/")+1);
@@ -199,16 +175,45 @@ public class VMClusterHandler {
 				+ "\"az storage message put --content buildingTerminated --queue-name "+terminationQueueName+" --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\"]"
 				+"}";
 		
-		for (int i=0; i< this.virtualMachines.size(); i++) {
-			System.out.println("   \u2022 Building on VM "+this.virtualMachines.get(i).name());
-			httpClient.preparePost("https://management.azure.com/subscriptions/"+this.subscriptionId+"/resourceGroups/"+resourceGroupName+"/providers/Microsoft.Compute/virtualMachines/"+this.virtualMachines.get(i).name()+"/runCommand?api-version=2020-12-01")
-					.addHeader("Authorization", "Bearer " + token)	
-  					.addHeader("Content-Type", "application/json")
-  					.addHeader("Connection", "keep-alive")
-					.setBody(commandBody)
-					.execute();
-		}
+		List<Response> responses = new ArrayList<>();
 
+		for (VirtualMachine vm : this.virtualMachines) {
+		    System.out.println("   \u2022 Building on VM "+vm.name());
+	    	while (true) {
+		    	Future<Response> whenResponse = httpClient.preparePost("https://management.azure.com/subscriptions/"+this.subscriptionId+"/resourceGroups/"+resourceGroupName+"/providers/Microsoft.Compute/virtualMachines/"+vm.name()+"/runCommand?api-version=2020-12-01")
+							.addHeader("Authorization", "Bearer " + token)	
+		  					.addHeader("Content-Type", "application/json")
+							.setBody(commandBody)
+							.execute();
+		    	
+				if (whenResponse.get().getStatusCode() == 409) {
+		    		//Conflict with a previous command, retry again in a bit
+		    		Thread.sleep(1000);
+		    	}else {
+					responses.add(whenResponse.get());
+					break;
+		    	}
+	    	}
+		}
+		
+		//One command at time can be executed on a VM, so before running next commands ensure these commands are terminated
+		boolean commandsInProgress = true;
+		while (commandsInProgress) {
+			for (Response r : responses) {
+				if(r.getStatusCode() == 202) {
+					Future<Response> whenResponse = httpClient.prepareGet(r.getHeader("azure-asyncoperation"))
+							.addHeader("Authorization", "Bearer " + token)	
+		  					.addHeader("Content-Type", "application/json")
+							.execute();
+					
+					if ( whenResponse.get().getResponseBody().contains("Provisioning succeeded")) commandsInProgress = false;
+					else commandsInProgress = true;
+				}else {
+					System.out.println("STATUS -> "+r.getStatusCode());
+				}
+			}
+		}
+	    System.out.println("   \u2022 Commands provisioning succeded");
 	}
 	
 	protected String checkBuildingStatus(String buildingOutputFileName) {
@@ -232,7 +237,6 @@ public class VMClusterHandler {
 	}
 	
 	
-	//Building project and FLY execution
 	protected void executeFLYonVMCluster(ArrayList<String> objectInputsString, int numberOfFunctions, String uriBlob, long idExec, AsyncHttpClient httpClient, String resourceGroupName, String token, String terminationQueueName) throws Exception {
 
   		//extract project name
@@ -241,8 +245,7 @@ public class VMClusterHandler {
   		projectName = projectName.substring(0, projectName.lastIndexOf("."));
 
 		int vmCount = this.virtualMachines.size();
-		
-	    waitUntilNoCommandsAreInProgress(resourceGroupName, httpClient, token);
+		List<Response> responses = new ArrayList<>();
 
 		//FLY execution
 		System.out.println("\n\u27A4 Fly execution...");
@@ -296,13 +299,48 @@ public class VMClusterHandler {
 			}
 			
 			System.out.println("   \u2022 Executing on VM "+this.virtualMachines.get(i).name());
-			httpClient.preparePost("https://management.azure.com/subscriptions/"+this.subscriptionId+"/resourceGroups/"+resourceGroupName+"/providers/Microsoft.Compute/virtualMachines/"+this.virtualMachines.get(i).name()+"/runCommand?api-version=2020-12-01")
-					.addHeader("Authorization", "Bearer " + token)	
-					.addHeader("Content-Type", "application/json")
-					.addHeader("Connection", "keep-alive")
-					.setBody(commandBody)
-					.execute();
+	    	while (true) {
+		    	Future<Response> whenResponse = httpClient.preparePost("https://management.azure.com/subscriptions/"+this.subscriptionId+"/resourceGroups/"+resourceGroupName+"/providers/Microsoft.Compute/virtualMachines/"+this.virtualMachines.get(i).name()+"/runCommand?api-version=2020-12-01")
+							.addHeader("Authorization", "Bearer " + token)	
+		  					.addHeader("Content-Type", "application/json")
+							.setBody(commandBody)
+							.execute();
+		    	
+		    	if (whenResponse.get().getStatusCode() == 409) {
+		    		//Conflict with a previous command, retry again in a bit
+		    		Thread.sleep(1000);
+		    	}else {
+					responses.add(whenResponse.get());
+					break;
+		    	}
+	    	}
 		}
+		
+    	//Ensure the commands are succeed
+    	boolean commandsInProgress = true;
+		while (commandsInProgress) {
+			for (Response r : responses) {
+				if(r.getStatusCode() == 202) {
+					Future<Response> whenResponse = httpClient.prepareGet(r.getHeader("azure-asyncoperation"))
+							.addHeader("Authorization", "Bearer " + token)	
+		  					.addHeader("Content-Type", "application/json")
+							.execute();
+					
+					if ( whenResponse.get().getResponseBody().contains("Provisioning succeeded")) commandsInProgress = false;
+					else commandsInProgress = true;
+				}else {
+					if (r.getStatusCode() == 400) {
+						System.out.println("STATUS -> "+r.getStatusCode());
+						System.out.println("STATUS -> "+r.getStatusText());
+						return;
+					}else System.out.println("STATUS -> "+r.getStatusCode());
+				}
+			}
+		}
+
+		
+		//No need to check for command provisioning , if all results are published on the results queue the execution is went well
+	    System.out.println("   \u2022 Commands provisioning succeded");
 	}
 	
 	protected String checkForExecutionErrors(String executionErrortFileName) throws IOException {
