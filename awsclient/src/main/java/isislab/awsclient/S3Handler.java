@@ -165,7 +165,10 @@ public class S3Handler {
 		 if (s3.doesObjectExist(bucketName, objectKey)) {
 			InputStream in = s3.getObject(new GetObjectRequest(bucketName, objectKey)).getObjectContent();
 			Files.copy(in, Paths.get("buildingOutput"));
-			return new File("buildingOutput");
+			
+			File f = new File("buildingOutput");
+			while(!f.exists());
+			return f;
 		 }else return null;
 	 }
 	 

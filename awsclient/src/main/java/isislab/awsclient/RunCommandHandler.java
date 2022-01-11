@@ -87,24 +87,24 @@ public class RunCommandHandler {
 		//Construct the key of "stdout" file
 		String stdoutKey = "buildingStatusOutput/"+hm.getKey()+"/"+hm.getValue()+"/awsrunShellScript/building/stdout";
 		String stderrKey = "buildingStatusOutput/"+hm.getKey()+"/"+hm.getValue()+"/awsrunShellScript/building/stderr";
-
+		
+		String outputLog = "";
 		File buildingOutputFile = s3Handler.getS3ObjectToFile(bucketName, stdoutKey);
 		if( buildingOutputFile != null) {
 			//Read the output file in reverse because the SUCCESS or FAILURE string is at the end
 			ReversedLinesFileReader reverseReader = new ReversedLinesFileReader(buildingOutputFile, Charset.forName("UTF-8"));
 	        String line;
-	        //Read last 10 lines of the file
-	        int lineToRead = 10;
+	        //Read last 30 lines of the file
+	        int lineToRead = 30;
 	        for (int i = 0; i < lineToRead; i++) {
 	            line = reverseReader.readLine();
 	            if (line.contains("BUILD SUCCESS")) return null;
+	            else outputLog += (lineToRead - i) + " "+ line + "\n";
 	        }
-	        reverseReader.close();
 		}
 		//Error in building
-		Path fileName1 = Path.of("buildingOutput");
-		Files.deleteIfExists(fileName1);
-		return s3Handler.getS3ObjectToString(bucketName, stderrKey);
+		while(!buildingOutputFile.delete());
+		return outputLog;
 	}
 
 	protected void executeFLYonVMCluster(ArrayList<String> objectInputsString, int numberOfFunctions, String bucketName, 
