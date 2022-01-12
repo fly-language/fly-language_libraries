@@ -3,8 +3,6 @@ package isislab.awsclient;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -16,6 +14,7 @@ import org.apache.commons.io.input.ReversedLinesFileReader;
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagement;
 import com.amazonaws.services.simplesystemsmanagement.model.CreateDocumentRequest;
+import com.amazonaws.services.simplesystemsmanagement.model.CreateDocumentResult;
 import com.amazonaws.services.simplesystemsmanagement.model.DeleteDocumentRequest;
 import com.amazonaws.services.simplesystemsmanagement.model.DocumentIdentifier;
 import com.amazonaws.services.simplesystemsmanagement.model.ListDocumentsRequest;
@@ -86,24 +85,26 @@ public class RunCommandHandler {
 		Map.Entry<String, String> hm = commandIds.entrySet().stream().findFirst().get();
 		//Construct the key of "stdout" file
 		String stdoutKey = "buildingStatusOutput/"+hm.getKey()+"/"+hm.getValue()+"/awsrunShellScript/building/stdout";
-		String stderrKey = "buildingStatusOutput/"+hm.getKey()+"/"+hm.getValue()+"/awsrunShellScript/building/stderr";
 		
 		String outputLog = "";
 		File buildingOutputFile = s3Handler.getS3ObjectToFile(bucketName, stdoutKey);
 		if( buildingOutputFile != null) {
-			//Read the output file in reverse because the SUCCESS or FAILURE string is at the end
 			ReversedLinesFileReader reverseReader = new ReversedLinesFileReader(buildingOutputFile, Charset.forName("UTF-8"));
 	        String line;
 	        //Read last 30 lines of the file
 	        int lineToRead = 30;
 	        for (int i = 0; i < lineToRead; i++) {
 	            line = reverseReader.readLine();
-	            if (line.contains("BUILD SUCCESS")) return null;
-	            else outputLog += (lineToRead - i) + " "+ line + "\n";
+	            if (line.contains("BUILD SUCCESS")) {
+	            	buildingOutputFile.delete();
+	    	        reverseReader.close();
+	            	return null;
+	            }else outputLog += (lineToRead - i) + " "+ line + "\n";
 	        }
+	        reverseReader.close();
 		}
 		//Error in building
-		while(!buildingOutputFile.delete());
+    	buildingOutputFile.delete();
 		return outputLog;
 	}
 
@@ -289,7 +290,7 @@ public class RunCommandHandler {
 	    		  .withDocumentType("Command")
 	    		  .withDocumentFormat("YAML"); //The alternative is JSON
 	      
-	      ssm.createDocument(createDocRequest);
+	      final CreateDocumentResult result = ssm.createDocument(createDocRequest);
 	    }
 
 }

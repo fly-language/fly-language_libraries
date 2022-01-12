@@ -164,10 +164,8 @@ public class S3Handler {
 	 protected File getS3ObjectToFile(String bucketName, String objectKey) throws IOException {
 		 if (s3.doesObjectExist(bucketName, objectKey)) {
 			InputStream in = s3.getObject(new GetObjectRequest(bucketName, objectKey)).getObjectContent();
-			Files.copy(in, Paths.get("buildingOutput"));
-			
 			File f = new File("buildingOutput");
-			while(!f.exists());
+			Files.copy(in, Paths.get("buildingOutput"));
 			return f;
 		 }else return null;
 	 }
