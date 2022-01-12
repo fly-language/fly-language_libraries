@@ -64,6 +64,11 @@
 			<artifactId>commons-io</artifactId>
 			<version>2.6</version>
 		</dependency>
+		<dependency>
+		    	<groupId>org.json</groupId>
+		    	<artifactId>json</artifactId>
+		    	<version>20210307</version>
+		</dependency>
 	    <dependency>
 	      <groupId>junit</groupId>
 	      <artifactId>junit</artifactId>

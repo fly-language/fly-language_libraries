@@ -162,18 +162,26 @@ public class S3Handler {
 	 }
 
 	 protected File getS3ObjectToFile(String bucketName, String objectKey) throws IOException {
-		 if (s3.doesObjectExist(bucketName, objectKey)) {
-			InputStream in = s3.getObject(new GetObjectRequest(bucketName, objectKey)).getObjectContent();
-			File f = new File("buildingOutput");
-			Files.copy(in, Paths.get("buildingOutput"));
-			return f;
-		 }else return null;
+		 //make 10 tries (at max) because the file could not ready yet
+		 for (int i=0; i<10; i++) {
+			 if (s3.doesObjectExist(bucketName, objectKey)) {
+				InputStream in = s3.getObject(new GetObjectRequest(bucketName, objectKey)).getObjectContent();
+				File f = new File("buildingOutput");
+				Files.copy(in, Paths.get("buildingOutput"));
+				return f;
+			 }
+		 }
+		 return null;
 	 }
 	 
 	 protected String getS3ObjectToString(String bucketName, String objectKey) {
-		 if (s3.doesObjectExist(bucketName, objectKey)) {
-			 return s3.getObjectAsString(bucketName, objectKey);
-		 }else return null;
+		 //make 10 tries (at max) because the file could not ready yet
+		 for (int i=0; i<10; i++) {
+			 if (s3.doesObjectExist(bucketName, objectKey)) {
+				 return s3.getObjectAsString(bucketName, objectKey);
+			 }
+		 }
+		 return null;
 	 }
 
 }

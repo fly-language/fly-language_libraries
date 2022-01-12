@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
+import org.json.JSONArray;
+
 import org.apache.commons.io.input.ReversedLinesFileReader;
 
 import com.amazonaws.services.ec2.model.Instance;
@@ -109,8 +111,8 @@ public class RunCommandHandler {
 		}else return "errorReadingFile";
 	}
 
-	protected void executeFLYonVMCluster(ArrayList<String> objectInputsString, int numberOfFunctions, String bucketName, 
-			String projectName, long idExec, String queueUrl) throws InterruptedException, ExecutionException {
+	protected void executeFLYonVMCluster(ArrayList<String> objectInputsString, ArrayList<String> constVariables, int numberOfFunctions, 
+			String bucketName, String projectName, long idExec, String queueUrl) throws InterruptedException, ExecutionException {
 
 		String docExecutionName = "fly_execution";
 		int vmCount = this.virtualMachines.size();
@@ -122,7 +124,7 @@ public class RunCommandHandler {
 			//Create the document for the command
 			try {
 				for (int i=0; i < vmCount; i++) {
-					createDocumentMethod(getDocumentContent3(projectName,bucketName,objectInputsString.get(i), idExec, queueUrl), 
+					createDocumentMethod(getDocumentContent3(projectName,bucketName,objectInputsString.get(i), new JSONArray(constVariables).toString(), idExec, queueUrl), 
 						docExecutionName+this.virtualMachines.get(i).getInstanceId());
 				}
 		    }
@@ -149,10 +151,10 @@ public class RunCommandHandler {
 			try {
 				for (int i=0; i < vmCount; i++) {
 					//Select my part of splits
-					String mySplits = splitCount[i] + "";
-					for(int k=displ[i]; k < displ[i] + splitCount[i]; k++) mySplits = mySplits + "@@@@@" + objectInputsString.get(k);
+					ArrayList<String> mySplits = new ArrayList<String>();
+					for(int k=displ[i]; k < displ[i] + splitCount[i]; k++) mySplits.add(objectInputsString.get(k));
 					
-					createDocumentMethod(getDocumentContent3(projectName,bucketName,mySplits, idExec, queueUrl), 
+					createDocumentMethod(getDocumentContent3(projectName,bucketName,new JSONArray(mySplits).toString(),new JSONArray(constVariables).toString(), idExec, queueUrl), 
 						docExecutionName+this.virtualMachines.get(i).getInstanceId());
 				}
 		    }
@@ -249,7 +251,8 @@ public class RunCommandHandler {
 	}
 
 	//Run FLY execution
-	private static String getDocumentContent3(String projectName, String bucketName, String objectInputString, long idExec, String queueUrl) throws IOException {
+	private static String getDocumentContent3(String projectName, String bucketName, String objectInputString,
+			String constVariables, long idExec, String queueUrl) throws IOException {
 		return "---" + "\n"
 			+ "schemaVersion: '2.2'" + "\n"
 			+ "description: Execute FLY application." + "\n"
@@ -263,7 +266,7 @@ public class RunCommandHandler {
 			+ "    - chmod -R 777 "+projectName+ "\n"
 			+ "    - mv "+projectName+"/src-gen ."+ "\n"
 			+ "    - mv "+projectName+"/target/"+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar ."+ "\n"
-			+ "    - java -jar "+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar "+objectInputString+" "+idExec+ "\n"
+			+ "    - java -jar "+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar "+objectInputString+" "+constVariables+" "+idExec+ "\n"
 			+ "    - rm -rf ..?* .[!.]* *"+ "\n" //delete all files (also the hidden ones)
 			+ "    - aws sqs send-message --queue-url "+queueUrl+" --message-body executionTerminated"+ "\n";
 	}

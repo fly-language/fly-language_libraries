@@ -309,9 +309,7 @@ public class EC2Handler {
 			//Don't terminate the cluster, it could be reused in the next execution
 		    System.out.println("\n\u27A4 Resource cleaning");
 
-    		System.out.print("   \u2022 Emptying the bucket...");
     		this.s3Handler.deleteBucketWithItsContent(bucketName, true);
-		    System.out.println("Done");
 		    
     		System.out.print("   \u2022 Deleting document commands...");
     		this.runCommandHandler.deleteFLYdocumentsCommand();
