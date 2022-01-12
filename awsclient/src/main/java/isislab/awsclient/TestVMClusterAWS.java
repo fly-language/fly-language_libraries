@@ -7,7 +7,6 @@ public class TestVMClusterAWS {
 	static BasicAWSCredentials creds = new BasicAWSCredentials("", "");
 	static AWSClient aws = null;
 
-
 	public static void main(String[] args) throws Exception{
 		
 		String region = "eu-west-2";
@@ -18,8 +17,8 @@ public class TestVMClusterAWS {
 			
 			aws = new AWSClient(creds,region, "termination_queue_name");
 			
-			int vCPUsCount_8 = aws.getVCPUsCount(instance_type);
-			System.out.println(vCPUsCount_8);
+			//int vCPUsCount_8 = aws.getVCPUsCount(instance_type);
+			//System.out.println(vCPUsCount_8);
 			
 			
 		}catch(Exception e){
