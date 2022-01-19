@@ -154,6 +154,14 @@ public class RunCommandHandler {
 					ArrayList<String> mySplits = new ArrayList<String>();
 					for(int k=displ[i]; k < displ[i] + splitCount[i]; k++) mySplits.add(objectInputsString.get(k));
 					
+					String mySplits_prev = splitCount[i] + "";
+					for(int k=displ[i]; k < displ[i] + splitCount[i]; k++) mySplits_prev = mySplits_prev + "@@@@@" + objectInputsString.get(k);
+					
+					System.out.println("objectInputString_prev "+i+" = "+new JSONArray(mySplits).toString());
+
+					System.out.println("objectInputString_new "+i+"= "+new JSONArray(mySplits).toString());
+					System.out.println("constVariable "+i+"= "+new JSONArray(constVariables).toString());
+					
 					createDocumentMethod(getDocumentContent3(projectName,bucketName,new JSONArray(mySplits).toString(),new JSONArray(constVariables).toString(), idExec, queueUrl), 
 						docExecutionName+this.virtualMachines.get(i).getInstanceId());
 				}
