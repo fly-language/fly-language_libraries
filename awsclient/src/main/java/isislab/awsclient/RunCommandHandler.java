@@ -117,6 +117,9 @@ public class RunCommandHandler {
 		String docExecutionName = "fly_execution";
 		int vmCount = this.virtualMachines.size();
 		
+		String constVariablesString = new String();
+		for (String c : constVariables) constVariablesString = constVariablesString + "\u2662" + c;
+		
 		//Check if the input is just a range of functions to execute
 		if(objectInputsString.get(0).contains("portionRangeLength")) {
 			//Range input
@@ -124,7 +127,7 @@ public class RunCommandHandler {
 			//Create the document for the command
 			try {
 				for (int i=0; i < vmCount; i++) {
-					createDocumentMethod(getDocumentContent3(projectName,bucketName,objectInputsString.get(i), new JSONArray(constVariables).toString(), idExec, queueUrl), 
+					createDocumentMethod(getDocumentContent3(projectName,bucketName,objectInputsString.get(i), constVariablesString, idExec, queueUrl), 
 						docExecutionName+this.virtualMachines.get(i).getInstanceId());
 				}
 		    }
@@ -151,18 +154,10 @@ public class RunCommandHandler {
 			try {
 				for (int i=0; i < vmCount; i++) {
 					//Select my part of splits
-					ArrayList<String> mySplits = new ArrayList<String>();
-					for(int k=displ[i]; k < displ[i] + splitCount[i]; k++) mySplits.add(objectInputsString.get(k));
+					String mySplits = splitCount[i] + "";
+					for(int k=displ[i]; k < displ[i] + splitCount[i]; k++) mySplits = mySplits + "\u2662" + objectInputsString.get(k);
 					
-					String mySplits_prev = splitCount[i] + "";
-					for(int k=displ[i]; k < displ[i] + splitCount[i]; k++) mySplits_prev = mySplits_prev + "@@@@@" + objectInputsString.get(k);
-					
-					System.out.println("objectInputString_prev "+i+" = "+new JSONArray(mySplits).toString());
-
-					System.out.println("objectInputString_new "+i+"= "+new JSONArray(mySplits).toString());
-					System.out.println("constVariable "+i+"= "+new JSONArray(constVariables).toString());
-					
-					createDocumentMethod(getDocumentContent3(projectName,bucketName,new JSONArray(mySplits).toString(),new JSONArray(constVariables).toString(), idExec, queueUrl), 
+					createDocumentMethod(getDocumentContent3(projectName,bucketName,mySplits,constVariablesString, idExec, queueUrl), 
 						docExecutionName+this.virtualMachines.get(i).getInstanceId());
 				}
 		    }

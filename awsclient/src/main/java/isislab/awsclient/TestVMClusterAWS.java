@@ -14,7 +14,6 @@ public class TestVMClusterAWS {
 		
 		try {			
 			//Channels handling
-			
 			aws = new AWSClient(creds,region, "termination_queue_name");
 			
 			//int vCPUsCount_8 = aws.getVCPUsCount(instance_type);
