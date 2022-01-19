@@ -117,8 +117,10 @@ public class RunCommandHandler {
 		
 		//using ♢ as special string (this could be a problem if there is this ♢ in the strings element) -> a better solution should be
 		//post this object on cloud and then take it from there already formatted
-		String constVariablesString = new String();
-		for (String c : constVariables) constVariablesString = constVariablesString + "\u2662" + c;
+		String constVariablesString = "";
+		if (constVariables.size() > 0) {
+			for (String c : constVariables) constVariablesString = constVariablesString + "\u2662" + c;
+		}else constVariablesString = "None";
 		
 		//Check if the input is just a range of functions to execute
 		if(objectInputsString.get(0).contains("portionRangeLength")) {
