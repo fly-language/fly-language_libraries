@@ -118,7 +118,7 @@ public class RunCommandHandler {
 		//using ♢ as special string (this could be a problem if there is this ♢ in the strings element) -> a better solution should be
 		//post this object on cloud and then take it from there already formatted
 		String constVariablesString = new String();
-		for (String c : constVariables) constVariablesString = constVariablesString + "♢" + c;
+		for (String c : constVariables) constVariablesString = constVariablesString + "\u2662" + c;
 		
 		//Check if the input is just a range of functions to execute
 		if(objectInputsString.get(0).contains("portionRangeLength")) {
@@ -155,7 +155,7 @@ public class RunCommandHandler {
 				for (int i=0; i < vmCount; i++) {
 					//Select my part of splits
 					String mySplits = splitCount[i] + "";
-					for(int k=displ[i]; k < displ[i] + splitCount[i]; k++) mySplits = mySplits + "♢" + objectInputsString.get(k);
+					for(int k=displ[i]; k < displ[i] + splitCount[i]; k++) mySplits = mySplits + "\u2662" + objectInputsString.get(k);
 					
 					createDocumentMethod(getDocumentContent3(projectName,bucketName,mySplits,constVariablesString, idExec, queueUrl), 
 						docExecutionName+this.virtualMachines.get(i).getInstanceId());
