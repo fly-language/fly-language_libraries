@@ -13,8 +13,8 @@ import org.apache.commons.io.input.ReversedLinesFileReader;
 
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagement;
+import com.amazonaws.services.simplesystemsmanagement.model.AWSSimpleSystemsManagementException;
 import com.amazonaws.services.simplesystemsmanagement.model.CreateDocumentRequest;
-import com.amazonaws.services.simplesystemsmanagement.model.CreateDocumentResult;
 import com.amazonaws.services.simplesystemsmanagement.model.DeleteDocumentRequest;
 import com.amazonaws.services.simplesystemsmanagement.model.DocumentIdentifier;
 import com.amazonaws.services.simplesystemsmanagement.model.ListDocumentsRequest;
@@ -39,7 +39,7 @@ public class RunCommandHandler {
 		this.virtualMachines = virtualMachines;
 	}
 	
-	protected void downloadExecutionFileOnVMCluster(String bucketName, String queueUrl) {
+	protected void downloadExecutionFileOnVMCluster(String bucketName, String queueUrl) throws InterruptedException {
 		String syncDocName = "fly_downloading";
 		
 	    System.out.println("\n\u27A4 Downlaoding necessary files on VMs of the cluster for FLY execution...");
@@ -256,7 +256,7 @@ public class RunCommandHandler {
 	}
 
 	//Run FLY execution
-	private static String getDocumentContent3(String projectName, String bucketName, String objectInputString,
+	protected static String getDocumentContent3(String projectName, String bucketName, String objectInputString,
 			String constVariables, long idExec, String queueUrl) throws IOException {
 		return "---" + "\n"
 			+ "schemaVersion: '2.2'" + "\n"
@@ -292,14 +292,32 @@ public class RunCommandHandler {
 			+ "    - aws sqs send-message --queue-url "+queueUrl+" --message-body downloadTerminated"+ "\n";
 	}
 	
-	private void createDocumentMethod (final String documentContent, String docName) {
+	protected void createDocumentMethod (final String documentContent, String docName) throws InterruptedException {
 	      final CreateDocumentRequest createDocRequest = new CreateDocumentRequest()
 	    		  .withContent(documentContent)
 	    		  .withName(docName)
 	    		  .withDocumentType("Command")
 	    		  .withDocumentFormat("YAML"); //The alternative is JSON
+	     
+	     int retries = 0;
+	     int max_retries = 10;
+	     boolean retry = false;
+	     
+	     do {
+		     try {
+		    	 ssm.createDocument(createDocRequest);
+		    	 return;
+		     }catch(AWSSimpleSystemsManagementException e) {
+		    	 //Rate exceeded: too many requests together, so retry
+		    	 System.out.println("Retrying...");
+		    	 Thread.sleep((retries*retries)*100); //exponential backoff
+		    	 retry = true;
+		    	 retries++;
+		     }
+	     }while(retry && (retries < max_retries));
+
+	     System.out.println("Number of tries exceeded.");
 	      
-	      final CreateDocumentResult result = ssm.createDocument(createDocRequest);
-	    }
+	}
 
 }

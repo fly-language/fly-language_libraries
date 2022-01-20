@@ -72,7 +72,7 @@ public class AWSClient {
 		 return ec2Handler.getVCPUsCount(instaceType);
 	 }
 	 
-	 public void downloadFLYProjectonVMCluster() {
+	 public void downloadFLYProjectonVMCluster() throws InterruptedException {
 		 runCommandHandler.downloadExecutionFileOnVMCluster(this.bucketName, this.terminationQueueUrl);
 	 }
 	 
@@ -102,7 +102,7 @@ public class AWSClient {
 	 
 	 /*
 	 //test creation document command
-	 public void testMethod(ArrayList<String> objectInputsString, ArrayList<String> constVariables, int numberOfFunctions, long idExec) {
+	 public void testMethod(ArrayList<String> objectInputsString, ArrayList<String> constVariables, int numberOfFunctions, long idExec) throws InterruptedException {
 		 String constVariablesString = "None";
 		 if (constVariables.size() > 0) {
 			constVariablesString = constVariables.get(0);
@@ -110,7 +110,7 @@ public class AWSClient {
 		 }
 		
 		String docExecutionName = "fly_execution";
-		int vmCount = 2;
+		int vmCount = 32;
 		
 		//Array or matrix split input
 		//Specify how many splits each VM has to compute

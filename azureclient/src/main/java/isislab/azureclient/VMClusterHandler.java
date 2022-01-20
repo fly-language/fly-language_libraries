@@ -15,13 +15,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import org.apache.commons.io.input.ReversedLinesFileReader;
-import org.asynchttpclient.AsyncHandler;
 import org.asynchttpclient.AsyncHttpClient;
-import org.asynchttpclient.HttpResponseBodyPart;
-import org.asynchttpclient.HttpResponseStatus;
-import org.asynchttpclient.ListenableFuture;
 import org.asynchttpclient.Response;
-import org.asynchttpclient.AsyncHandler.State;
 
 import com.microsoft.azure.management.Azure;
 import com.microsoft.azure.management.compute.VirtualMachine;
@@ -36,8 +31,6 @@ import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobClient;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
-
-import io.netty.handler.codec.http.HttpHeaders;
 
 public class VMClusterHandler {
 	
@@ -237,7 +230,8 @@ public class VMClusterHandler {
 	}
 	
 	
-	protected void executeFLYonVMCluster(ArrayList<String> objectInputsString, int numberOfFunctions, String uriBlob, long idExec, AsyncHttpClient httpClient, String resourceGroupName, String token, String terminationQueueName) throws Exception {
+	protected void executeFLYonVMCluster(ArrayList<String> objectInputsString, ArrayList<String> constVariables, int numberOfFunctions, 
+			String uriBlob, long idExec, AsyncHttpClient httpClient, String resourceGroupName, String token, String terminationQueueName) throws Exception {
 
   		//extract project name
   		String projectName = uriBlob.substring(uriBlob.lastIndexOf("/")+1);
@@ -250,6 +244,13 @@ public class VMClusterHandler {
 		//FLY execution
 		System.out.println("\n\u27A4 Fly execution...");
 		
+		//using ♢ as special string (this could be a problem if there is this ♢ in the strings element) -> a better solution should be
+		//post this object on cloud and then take it from there already formatted
+		String constVariablesString = "";
+		if (constVariables.size() > 0) {
+			for (String c : constVariables) constVariablesString = constVariablesString + "\u2662" + c;
+		}else constVariablesString = "None";
+		
 		for (int i=0; i< vmCount; i++) {
 			String commandBody = "";
 			//Check if the input is just a range of functions to execute
@@ -260,7 +261,7 @@ public class VMClusterHandler {
 						+ "\"chmod -R 777 "+projectName+"\","
 						+ "\"mv "+projectName+"/src-gen .\","
 						+ "\"mv "+projectName+"/target/"+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar .\","
-						+ "\"java -jar "+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar "+objectInputsString.get(i).replace("\"", "\\\"") +" "+idExec+" 2> executionError 1> executionOutput\","
+						+ "\"java -jar "+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar "+objectInputsString.get(i).replace("\"", "\\\"") +" "+constVariablesString+" "+idExec+" 2> executionError 1> executionOutput\","
 						+ "\"az storage blob upload -c bucket-"+id+" -f executionError --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
 						+ "\"az storage blob upload -c bucket-"+id+" -f executionOutput --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
 						+ "\"az storage message put --content executionTerminated --queue-name "+terminationQueueName+" --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
@@ -283,14 +284,14 @@ public class VMClusterHandler {
 				
 				//Select my part of splits
 				String mySplits = splitCount[i] + "";
-				for(int k=displ[i]; k < displ[i] + splitCount[i]; k++) mySplits = mySplits + "@@@@@" + objectInputsString.get(k);
+				for(int k=displ[i]; k < displ[i] + splitCount[i]; k++) mySplits = mySplits + "\u2662" + objectInputsString.get(k);
 				
 				commandBody = "{\"commandId\": \"RunShellScript\",\"script\": ["
 						+ "\"cd ../../../../../../home/"+FLY_VM_USER+"\","
 						+ "\"chmod -R 777 "+projectName+"\","
 						+ "\"mv "+projectName+"/src-gen .\","
 						+ "\"mv "+projectName+"/target/"+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar .\","
-						+ "\"java -jar "+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar "+mySplits.replace("\"", "\\\"")+" "+idExec+" 2> executionError 1> executionOutput\","
+						+ "\"java -jar "+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar "+mySplits.replace("\"", "\\\"")+" "+constVariablesString+" "+idExec+" 2> executionError 1> executionOutput\","
 						+ "\"az storage blob upload -c bucket-"+id+" -f executionError --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
 						+ "\"az storage blob upload -c bucket-"+id+" -f executionOutput --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
 						+ "\"az storage message put --content executionTerminated --queue-name "+terminationQueueName+" --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","

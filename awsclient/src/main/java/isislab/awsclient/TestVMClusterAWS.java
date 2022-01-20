@@ -100,6 +100,8 @@ public class TestVMClusterAWS {
 					numberOfFunctions_12,
 					__id_execution);*/
 			
+			aws.cleanResources();
+
 			
 		}catch(Exception e){
 			e.printStackTrace();

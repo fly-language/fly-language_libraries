@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
 
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
@@ -596,8 +595,8 @@ public class AzureClient {
 		return error;
 	 }
 	 
-	 public void executeFLYonVMCluster(ArrayList<String> objectInputsString, int numberOfFunctions, long idExec) throws Exception {
-		 vmClusterHandler.executeFLYonVMCluster(objectInputsString, numberOfFunctions, this.projectID, idExec, this.httpClient, this.resourceGroup.name(), getOAuthToken(), this.terminationQueueName);
+	 public void executeFLYonVMCluster(ArrayList<String> objectInputsString,ArrayList<String> constVariables, int numberOfFunctions, long idExec) throws Exception {
+		 vmClusterHandler.executeFLYonVMCluster(objectInputsString,constVariables, numberOfFunctions, this.projectID, idExec, this.httpClient, this.resourceGroup.name(), getOAuthToken(), this.terminationQueueName);
 	 }
 	 
 	 
