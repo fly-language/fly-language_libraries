@@ -117,19 +117,21 @@ public class RunCommandHandler {
 		s3Handler.writeInputObjectsToFileAndUploadToS3(objectInputsString, constVariables, this.virtualMachines,vmCountToUse, bucketName);
 		
 	    //Create the document for the command
-		try {
-			createDocumentMethod(getDocumentContent3(projectName, bucketName, idExec, queueUrl), docExecutionName);
-	    }
-	    catch (IOException e) {
-	      e.printStackTrace();
-	    }
+		for (int i=0; i < vmCountToUse; i++) {
+			try {
+				createDocumentMethod(getDocumentContent3(projectName, bucketName, "mySplits"+virtualMachines.get(i).getInstanceId()+".txt",idExec, queueUrl), docExecutionName+"_"+this.virtualMachines.get(i).getInstanceId());
+		    }
+		    catch (IOException e) {
+		      e.printStackTrace();
+		    }
+		}
 		
 		//FLY execution
 		System.out.println("\n\u27A4 Fly execution...");		
 		for (int i=0; i< vmCountToUse; i++) {
 			
 			System.out.println("Running on VM "+this.virtualMachines.get(i).getInstanceId());
-			executeCommand(this.virtualMachines.get(i).getInstanceId(), bucketName, docExecutionName, "execution");
+			executeCommand(this.virtualMachines.get(i).getInstanceId(), bucketName, docExecutionName+"_"+this.virtualMachines.get(i).getInstanceId(), "execution");
 		}
 	}
 	
@@ -212,7 +214,7 @@ public class RunCommandHandler {
 	}
 
 	//Run FLY execution
-	protected static String getDocumentContent3(String projectName, String bucketName, long idExec, String queueUrl) throws IOException {
+	protected static String getDocumentContent3(String projectName, String bucketName, String splitsFileName, long idExec, String queueUrl) throws IOException {
 		return "---" + "\n"
 			+ "schemaVersion: '2.2'" + "\n"
 			+ "description: Execute FLY application." + "\n"
@@ -226,7 +228,7 @@ public class RunCommandHandler {
 			+ "    - chmod -R 777 "+projectName+ "\n"
 			+ "    - mv "+projectName+"/src-gen ."+ "\n"
 			+ "    - mv "+projectName+"/target/"+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar ."+ "\n"
-			+ "    - java -jar "+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar "+idExec+ "\n"
+			+ "    - java -jar "+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar "+splitsFileName+" "+idExec+ "\n"
 			+ "    - rm -rf ..?* .[!.]* *"+ "\n" //delete all files (also the hidden ones)
 			+ "    - aws sqs send-message --queue-url "+queueUrl+" --message-body executionTerminated"+ "\n";
 	}
