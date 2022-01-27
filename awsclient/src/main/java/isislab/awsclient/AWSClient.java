@@ -84,8 +84,8 @@ public class AWSClient {
 		 return runCommandHandler.checkBuildingStatus(this.bucketName);
 	 }
 	 
-	 public void executeFLYonVMCluster(ArrayList<String> objectInputsString, ArrayList<String> constVariables, int numberOfFunctions, long idExec) throws InterruptedException, ExecutionException {
-		 runCommandHandler.executeFLYonVMCluster(objectInputsString, constVariables, numberOfFunctions, this.bucketName, this.projectID, idExec, this.terminationQueueUrl);
+	 public void executeFLYonVMCluster(ArrayList<String> objectInputsString, ArrayList<String> constVariables, int vmCountToUse, long idExec) throws InterruptedException, ExecutionException, IOException {
+		 runCommandHandler.executeFLYonVMCluster(objectInputsString, constVariables, vmCountToUse, this.bucketName, this.projectID, idExec, this.terminationQueueUrl);
 	 }
 	 
 	 public String checkForExecutionErrors() {
@@ -110,7 +110,7 @@ public class AWSClient {
 		 }
 		
 		String docExecutionName = "fly_execution";
-		int vmCount = 32;
+		int vmCount = 8;
 		
 		//Array or matrix split input
 		//Specify how many splits each VM has to compute

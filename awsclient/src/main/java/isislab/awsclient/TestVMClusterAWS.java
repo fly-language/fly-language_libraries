@@ -3,8 +3,19 @@ package isislab.awsclient;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedTransferQueue;
 
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.services.sqs.AmazonSQS;
+import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
+import com.amazonaws.services.sqs.model.CreateQueueRequest;
+import com.amazonaws.services.sqs.model.Message;
+import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
+import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 
 public class TestVMClusterAWS {
 	
@@ -15,18 +26,65 @@ public class TestVMClusterAWS {
 	
 	static Integer vmCount = 2;	
 	static Integer funcCount = 4;
-	static Integer N = 20;
-	static Integer[] vector = new Integer[N];	
+	static Integer M = 500;	
+	static Integer N = 500;	
+	static Integer[] vector = new Integer[N];
+	
+	static ExecutorService __thread_pool_smp = Executors.newFixedThreadPool(4);
+
+	static AmazonSQS __sqs_aws = AmazonSQSClientBuilder.standard()
+			.withRegion("eu-west-2")							 
+			.withCredentials(new AWSStaticCredentialsProvider(creds))
+			.build();
+	
+	static boolean __wait_on_termination_matrixVectorMultiplication_0 = true;
 
 
 	public static void main(String[] args) throws Exception{
 		
 		String region = "eu-west-2";
 		String instance_type = "t2.micro";
-		int vCPUsCount_12 = 1;
-		int vmCount_1642607371668 = 2;
+		int vCPUsCount_33 = 1;
+		int vmCount_1643281687557 = 4;
+		boolean persistence = true;
 		
-		Integer [] arrayOfIntegers = {1,2,3,4,5,6,7,8,9};
+		Integer[][] matrix = new Integer[M][N];
+		
+		Integer min = 0;
+		
+		Integer max = 100;
+		
+		
+		for(int i=0;i<M;i++){
+			
+			{
+				
+				for(int j=0;j<N;j++){
+					
+					{
+						Random r = new Random();
+						
+						Integer x = r.nextInt(max - min) + min;
+						
+						
+						matrix[i][j] =  x;
+					}
+				}
+			}
+		}
+		
+		
+		for(int i=0;i<N;i++){
+			
+			{
+				Random r = new Random();
+				
+				Integer x = r.nextInt(max - min) + min;
+				
+				
+				vector[i] = x;
+			}
+		}
 
 		try {
 			/*
@@ -37,68 +95,107 @@ public class TestVMClusterAWS {
 			System.out.println(JSONArrayValues.getInt(0));
 			*/
 			
-			aws = new AWSClient(creds,region, "termination_queue_name");
+			/*__wait_on_termination_matrixVectorMultiplication_0=true;
+			__sqs_aws.createQueue(new CreateQueueRequest("termination-matrixVectorMultiplication-"+__id_execution));
+			LinkedTransferQueue<String> __termination_matrixVectorMultiplication_ch_0  = new LinkedTransferQueue<String>();
+			final String __termination_matrixVectorMultiplication_url_0 = __sqs_aws.getQueueUrl("termination-matrixVectorMultiplication-"+__id_execution).getQueueUrl();
+			for(int __i=0;__i< 4;__i++){ 
+				__thread_pool_smp.submit(new Callable<Object>() {
+					@Override
+					public Object call() throws Exception {
+						while(__wait_on_termination_matrixVectorMultiplication_0) {
+							ReceiveMessageRequest __recmsg = new ReceiveMessageRequest(__termination_matrixVectorMultiplication_url_0).
+									withWaitTimeSeconds(1).withMaxNumberOfMessages(10);
+							ReceiveMessageResult __res = __sqs_aws.receiveMessage(__recmsg);
+							for(Message msg : __res.getMessages()) { 
+								__termination_matrixVectorMultiplication_ch_0.put(msg.getBody());
+								__sqs_aws.deleteMessage(__termination_matrixVectorMultiplication_url_0, msg.getReceiptHandle());
+							}
+						}
+						return null;
+					}
+				});
+			}*/
+			
+			aws = new AWSClient(creds,region, "term");
+			
+			aws.zipAndUploadCurrentProject();
+			
+			int vmsCreatedCount_35 = aws.launchVMCluster(instance_type, "spot", persistence, vmCount_1643281687557);
+			/*
+			if ( vmsCreatedCount_35 != 0) {
+				System.out.print("\n\u27A4 Waiting for virtual machines boot script to complete...");
+				while ( __termination_matrixVectorMultiplication_ch_0.size() != vmsCreatedCount_35);
+				System.out.println("Done");
+			}
+			if(vmsCreatedCount_35 != vmCount_1643281687557){
+				if ( vmsCreatedCount_35 > 0) aws.downloadFLYProjectonVMCluster();
+				
+				System.out.print("\n\u27A4 Waiting for download project on VM CLuster to complete...");
+				while (__termination_matrixVectorMultiplication_ch_0.size() != (vmCount_1643281687557+vmsCreatedCount_35));
+			}
+			System.out.println("Done");*/
+			
+			//Building
 			
 			//input array example splitting
-			int splitCount_12 = vCPUsCount_12 * vmCount_1642607371668;
-			int vmCountToUse_12 = vmCount_1642607371668;
-			ArrayList<StringBuilder> __temp_arrayOfIntegers_12 = new ArrayList<StringBuilder>();
-			ArrayList<String> portionInputs_12 = new ArrayList<String>();
-			int __arr_length_12 = arrayOfIntegers.length;
+			int splitCount_33 = vCPUsCount_33 * vmCount_1643281687557;
+			int vmCountToUse_33 = vmCount_1643281687557;
+			ArrayList<StringBuilder> __temp_matrix_33 = new ArrayList<StringBuilder>();
+			ArrayList<String> portionInputs_33 = new ArrayList<String>();
 			
-			if ( __arr_length_12 < splitCount_12) splitCount_12 = __arr_length_12;
-			if ( splitCount_12 < vmCountToUse_12) vmCountToUse_12 = splitCount_12;				
+			int __rows_33 = matrix.length;
+			int __cols_33 = matrix[0].length;
 			
-			int[] dimPortions_12 = new int[splitCount_12]; 
-			int[] displ_12 = new int[splitCount_12]; 
-			int offset_12 = 0;
-			
-			for(int __i=0;__i<splitCount_12;__i++){
-				dimPortions_12[__i] = (__arr_length_12 / splitCount_12) +
-					((__i < (__arr_length_12 % splitCount_12)) ? 1 : 0);
-				displ_12[__i] = offset_12;								
-				offset_12 += dimPortions_12[__i];
-				
-				__temp_arrayOfIntegers_12.add(__i,new StringBuilder());
-				String myArrayPortionString = Arrays.toString(Arrays.copyOfRange(arrayOfIntegers,displ_12[__i], displ_12[__i]+dimPortions_12[__i] ));
-				
-				__temp_arrayOfIntegers_12.get(__i).append("{\"portionLength\":"+dimPortions_12[__i]+",\"portionIndex\":"+__i+",\"portionDisplacement\":"+displ_12[__i]+",\"portionValues\":\""+myArrayPortionString+"\"}");							
-				portionInputs_12.add(__generateString(__temp_arrayOfIntegers_12.get(__i).toString(),12));
-				
-				System.out.println(__generateString(__temp_arrayOfIntegers_12.get(__i).toString(),12));
-			}
-			int numberOfFunctions_12 = splitCount_12;
-			int notUsedVMs_12 = vmCount_1642607371668 - vmCountToUse_12;
-			ArrayList<String> constVariables_12 = new ArrayList<String>();
-			
-			constVariables_12.add("{\"name\":\"vmCount\",\"type\":\"Integer\",\"value\":"+vmCount+"}");
-			constVariables_12.add("{\"name\":\"funcCount\",\"type\":\"Integer\",\"value\":"+funcCount+"}");
-			
-			Integer min = 0;
-			
-			Integer max = 10;
-			for(int i=0;i<N;i++){
-				
-				{
-					Random r = new Random();
+			int __current_row_matrix_33 = 0;
+																
+			if ( __rows_33 < splitCount_33) splitCount_33 = __rows_33;
+			if ( splitCount_33 < vmCountToUse_33) vmCountToUse_33 = splitCount_33;
+										
+			int[] dimPortions_33 = new int[splitCount_33]; 
+			int[] displ_33 = new int[splitCount_33]; 
+			int offset_33 = 0;
+										
+			for(int __i=0;__i<splitCount_33;__i++){
+				dimPortions_33[__i] = (__rows_33 / splitCount_33) + ((__i < (__rows_33 % splitCount_33)) ? 1 : 0);
+				displ_33[__i] = offset_33;								
+				offset_33 += dimPortions_33[__i];
+											
+				__temp_matrix_33.add(__i,new StringBuilder());
+				__temp_matrix_33.get(__i).append("{\"portionRows\":"+dimPortions_33[__i]+",\"portionCols\":"+__cols_33+",\"portionIndex\":"+__i+",\"portionDisplacement\":"+displ_33[__i]+",\"portionValues\":[");							
 					
-					Integer x = r.nextInt(max - min) + min;
-					
-					
-					vector[i] = x;
+				for(int __j=__current_row_matrix_33; __j<__current_row_matrix_33+dimPortions_33[__i];__j++){
+					for(int __z = 0; __z<matrix[__j].length;__z++){
+						__temp_matrix_33.get(__i).append("{\"x\":"+__j+",\"y\":"+__z+",\"value\":"+matrix[__j][__z]+"},");
+					}
+					if(__j == __current_row_matrix_33 + dimPortions_33[__i]-1) {
+						__temp_matrix_33.get(__i).deleteCharAt(__temp_matrix_33.get(__i).length()-1);
+						__temp_matrix_33.get(__i).append("]}");
+					}
 				}
+				__current_row_matrix_33 +=dimPortions_33[__i];
+				portionInputs_33.add(__generateString(__temp_matrix_33.get(__i).toString(),33));
+				
 			}
+			int numberOfFunctions_33 = splitCount_33;
+			int notUsedVMs_33 = vmCount_1643281687557 - vmCountToUse_33;
+			ArrayList<String> constVariables_33 = new ArrayList<String>();
 			
-			constVariables_12.add("{\"name\":\"vector\",\"type\":\"Integer\",\"value\":\""+Arrays.deepToString(vector)+"\"}");
-
+			constVariables_33.add("{\"name\":\"vmCount\",\"type\":\"Integer\",\"value\":"+vmCount+"}");
 			
-			System.out.println(constVariables_12.get(2));
+			constVariables_33.add("{\"name\":\"funcCount\",\"type\":\"Integer\",\"value\":"+funcCount+"}");
+						
+			constVariables_33.add("{\"name\":\"M\",\"type\":\"Integer\",\"value\":"+M+"}");
 			
+			constVariables_33.add("{\"name\":\"N\",\"type\":\"Integer\",\"value\":"+N+"}");
 			
-			/*aws.testMethod(portionInputs_12,
-					constVariables_12,
-					numberOfFunctions_12,
-					__id_execution);*/
+			constVariables_33.add("{\"name\":\"vector\",\"type\":\"Array_Integer\",\"value\":\""+Arrays.deepToString(vector)+"\"}");
+						
+			
+			aws.executeFLYonVMCluster(portionInputs_33,
+					constVariables_33,
+					numberOfFunctions_33,
+					__id_execution);
 			
 			aws.cleanResources();
 

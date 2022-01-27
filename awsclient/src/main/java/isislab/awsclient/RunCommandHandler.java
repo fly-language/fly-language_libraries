@@ -109,71 +109,27 @@ public class RunCommandHandler {
 		}else return "errorReadingFile";
 	}
 
-	protected void executeFLYonVMCluster(ArrayList<String> objectInputsString, ArrayList<String> constVariables, int numberOfFunctions, 
-			String bucketName, String projectName, long idExec, String queueUrl) throws InterruptedException, ExecutionException {
+	protected void executeFLYonVMCluster(ArrayList<String> objectInputsString, ArrayList<String> constVariables, int vmCountToUse, 
+			String bucketName, String projectName, long idExec, String queueUrl) throws InterruptedException, ExecutionException, IOException {
 
 		String docExecutionName = "fly_execution";
-		int vmCount = this.virtualMachines.size();
 		
-		//using ♢ as special string (this could be a problem if there is this ♢ in the strings element) -> a better solution should be
-		//post this object on cloud and then take it from there already formatted
-		String constVariablesString = "";
-		if (constVariables.size() > 0) {
-			for (String c : constVariables) constVariablesString = constVariablesString + "\u2662" + c;
-		}else constVariablesString = "None";
+		s3Handler.writeInputObjectsToFileAndUploadToS3(objectInputsString, constVariables, this.virtualMachines,vmCountToUse, bucketName);
 		
-		//Check if the input is just a range of functions to execute
-		if(objectInputsString.get(0).contains("portionRangeLength")) {
-			//Range input
-			
-			//Create the document for the command
-			try {
-				for (int i=0; i < vmCount; i++) {
-					createDocumentMethod(getDocumentContent3(projectName,bucketName,objectInputsString.get(i), constVariablesString, idExec, queueUrl), 
-						docExecutionName+this.virtualMachines.get(i).getInstanceId());
-				}
-		    }
-		    catch (IOException e) {
-		      e.printStackTrace();
-		    }
-			
-		}else {
-			//Array or matrix split input
-			//Specify how many splits each VM has to compute
-			int splitsNum = objectInputsString.size();
-			
-			int[] splitCount = new int[vmCount];
-			int[] displ = new int[vmCount]; 
-			int offset = 0;
-			
-			for(int i=0; i < vmCount; i++) {
-				splitCount[i] = ( splitsNum / vmCount) + ((i < (splitsNum % vmCount)) ? 1 : 0);
-				displ[i] = offset;
-				offset += splitCount[i];
-			}
-			
-		    //Create the document for the command
-			try {
-				for (int i=0; i < vmCount; i++) {
-					//Select my part of splits
-					String mySplits = splitCount[i] + "";
-					for(int k=displ[i]; k < displ[i] + splitCount[i]; k++) mySplits = mySplits + "\u2662" + objectInputsString.get(k);
-					
-					createDocumentMethod(getDocumentContent3(projectName,bucketName,mySplits,constVariablesString, idExec, queueUrl), 
-						docExecutionName+this.virtualMachines.get(i).getInstanceId());
-				}
-		    }
-		    catch (IOException e) {
-		      e.printStackTrace();
-		    }
-		}
+	    //Create the document for the command
+		try {
+			createDocumentMethod(getDocumentContent3(projectName, bucketName, idExec, queueUrl), docExecutionName);
+	    }
+	    catch (IOException e) {
+	      e.printStackTrace();
+	    }
 		
 		//FLY execution
 		System.out.println("\n\u27A4 Fly execution...");		
-		for (int i=0; i< vmCount; i++) {
+		for (int i=0; i< vmCountToUse; i++) {
 			
 			System.out.println("Running on VM "+this.virtualMachines.get(i).getInstanceId());
-			executeCommand(this.virtualMachines.get(i).getInstanceId(), bucketName, docExecutionName+this.virtualMachines.get(i).getInstanceId(), "execution");
+			executeCommand(this.virtualMachines.get(i).getInstanceId(), bucketName, docExecutionName, "execution");
 		}
 	}
 	
@@ -256,8 +212,7 @@ public class RunCommandHandler {
 	}
 
 	//Run FLY execution
-	protected static String getDocumentContent3(String projectName, String bucketName, String objectInputString,
-			String constVariables, long idExec, String queueUrl) throws IOException {
+	protected static String getDocumentContent3(String projectName, String bucketName, long idExec, String queueUrl) throws IOException {
 		return "---" + "\n"
 			+ "schemaVersion: '2.2'" + "\n"
 			+ "description: Execute FLY application." + "\n"
@@ -271,7 +226,7 @@ public class RunCommandHandler {
 			+ "    - chmod -R 777 "+projectName+ "\n"
 			+ "    - mv "+projectName+"/src-gen ."+ "\n"
 			+ "    - mv "+projectName+"/target/"+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar ."+ "\n"
-			+ "    - java -jar "+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar "+objectInputString+" "+constVariables+" "+idExec+ "\n"
+			+ "    - java -jar "+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar "+idExec+ "\n"
 			+ "    - rm -rf ..?* .[!.]* *"+ "\n" //delete all files (also the hidden ones)
 			+ "    - aws sqs send-message --queue-url "+queueUrl+" --message-body executionTerminated"+ "\n";
 	}
@@ -308,7 +263,7 @@ public class RunCommandHandler {
 		    	 ssm.createDocument(createDocRequest);
 		    	 return;
 		     }catch(AWSSimpleSystemsManagementException e) {
-		    	 //Rate exceeded: too many requests together, so retry
+		    	 e.printStackTrace();
 		    	 System.out.println("Retrying...");
 		    	 Thread.sleep((retries*retries)*100); //exponential backoff
 		    	 retry = true;
