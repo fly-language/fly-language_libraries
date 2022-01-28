@@ -87,7 +87,7 @@ public class RunCommandHandler {
 		String stdoutKey = "buildingStatusOutput/"+hm.getKey()+"/"+hm.getValue()+"/awsrunShellScript/building/stdout";
 		
 		String outputLog = "**BUILD FAILED**" + "\n";
-		File buildingOutputFile = s3Handler.getS3ObjectToFile(bucketName, stdoutKey);
+		File buildingOutputFile = s3Handler.getS3ObjectToFile(bucketName, stdoutKey, "buildingOutput");
 		if( buildingOutputFile != null) {
 			ReversedLinesFileReader reverseReader = new ReversedLinesFileReader(buildingOutputFile, Charset.forName("UTF-8"));
 	        String line;
@@ -109,12 +109,15 @@ public class RunCommandHandler {
 		}else return "errorReadingFile";
 	}
 
-	protected void executeFLYonVMCluster(ArrayList<String> objectInputsString, ArrayList<String> constVariables, int vmCountToUse, 
+	protected void executeFLYonVMCluster(ArrayList<String> objectInputsString, ArrayList<String> constVariables, int numberOfFunctions, 
 			String bucketName, String projectName, long idExec, String queueUrl) throws InterruptedException, ExecutionException, IOException {
 
 		String docExecutionName = "fly_execution";
 		
-		s3Handler.writeInputObjectsToFileAndUploadToS3(objectInputsString, constVariables, this.virtualMachines,vmCountToUse, bucketName);
+		int vmCountToUse = this.virtualMachines.size();
+		if(numberOfFunctions < vmCountToUse) vmCountToUse = numberOfFunctions;
+		
+		s3Handler.writeInputObjectsToFileAndUploadToS3(objectInputsString, constVariables, this.virtualMachines, vmCountToUse, bucketName);
 		
 	    //Create the document for the command
 		for (int i=0; i < vmCountToUse; i++) {

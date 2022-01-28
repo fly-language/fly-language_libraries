@@ -166,13 +166,13 @@ public class S3Handler {
 		}
 	}
 
-	protected File getS3ObjectToFile(String bucketName, String objectKey) throws IOException {
+	protected File getS3ObjectToFile(String bucketName, String objectKey, String fileName) throws IOException {
 		//make 10 tries (at max) because the file could not ready yet
 		for (int i=0; i<10; i++) {
 			if (s3.doesObjectExist(bucketName, objectKey)) {
 				InputStream in = s3.getObject(new GetObjectRequest(bucketName, objectKey)).getObjectContent();
-				File f = new File("buildingOutput");
-				Files.copy(in, Paths.get("buildingOutput"));
+				File f = new File(fileName);
+				Files.copy(in, Paths.get(fileName));
 				return f;
 			}
 		}
@@ -254,7 +254,9 @@ public class S3Handler {
 
 				bw = new BufferedWriter(new OutputStreamWriter(fos));
 
-				bw.write(splitCount[i]);
+				bw.write(String.valueOf(splitCount[i]));
+				bw.newLine();
+				
 				//Select my part of splits
 				for(int k=displ[i]; k < displ[i] + splitCount[i]; k++) {
 					bw.write(objectInputsString.get(k));
