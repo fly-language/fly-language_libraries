@@ -97,8 +97,8 @@ public class TestVMClusterAWS {
 			aws = new AWSClient(creds,region);
 			aws.setupS3Bucket("flybucketvmcluster");
 			
-			File f1 = aws.downloadS3ObjectToFile("mySplitsi-02879fc2998be7349.txt");
-			File f2 = aws.downloadS3ObjectToFile("constValues.txt");
+			aws.downloadS3ObjectToFile("mySplitsi-02879fc2998be7349.txt");
+			aws.downloadS3ObjectToFile("constValues.txt");
 			
 			FileInputStream fis = new FileInputStream("constValues.txt");       
 			Scanner sc = new Scanner(fis);    //file to be scanned  

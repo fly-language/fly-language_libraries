@@ -202,15 +202,18 @@ public class S3Handler {
 
 		BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fos));
 
-		if (constVariables.size() > 0) for (String c : constVariables) {
-			bw.write(c);
-			bw.newLine();
+		if (constVariables.size() > 0) {
+			for (String c : constVariables) {
+				bw.write(c);
+				bw.newLine();
+			}
 		}else bw.write("None");
+		
+		bw.close();
 		
 		uploadFileToS3(bucketName, fout);
 		Files.delete(Path.of(fout.getName()));
 
-		bw.close();
 
 		//Check if the input is just a range of functions to execute
 		if(objectInputsString.get(0).contains("portionRangeLength")) {
@@ -227,10 +230,10 @@ public class S3Handler {
 				bw.write(objectInputsString.get(i));
 				bw.newLine();
 				
+				bw.close();
+				
 				uploadFileToS3(bucketName, fout);
 				Files.delete(Path.of(fout.getName()));
-
-				bw.close();
 			}
 		}else {
 			//Array or matrix split input
@@ -263,10 +266,10 @@ public class S3Handler {
 					bw.newLine();
 				}
 				
+				bw.close();
+				
 				uploadFileToS3(bucketName, fout);
 				Files.delete(Path.of(fout.getName()));
-
-				bw.close();
 			}
 		}
 	}
