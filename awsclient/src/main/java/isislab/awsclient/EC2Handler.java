@@ -378,7 +378,7 @@ public class EC2Handler {
 				if ( checkIfInstanceIsSpot(instance)) {
 					try {
 			            ArrayList<String> spotInstanceRequestIds = new ArrayList<String>();
-			            spotInstanceRequestIds.add(instance.getInstanceId());
+			            spotInstanceRequestIds.add(instance.getSpotInstanceRequestId());
 
 			            CancelSpotInstanceRequestsRequest cancelRequest = new CancelSpotInstanceRequestsRequest(spotInstanceRequestIds);
 			            ec2.cancelSpotInstanceRequests(cancelRequest);
