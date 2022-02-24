@@ -97,8 +97,8 @@ public class AWSClient {
 		return runCommandHandler.checkBuildingStatus(this.bucketName);
 	}
 
-	public void executeFLYonVMCluster(ArrayList<String> objectInputsString, ArrayList<String> constVariables, int numberOfFunctions, long idExec) throws InterruptedException, ExecutionException, IOException {
-		runCommandHandler.executeFLYonVMCluster(objectInputsString, constVariables, numberOfFunctions, this.bucketName, this.projectID, idExec, this.terminationQueueUrl);
+	public void executeFLYonVMCluster(int numberOfFunctions, long idExec) throws InterruptedException, ExecutionException, IOException {
+		runCommandHandler.executeFLYonVMCluster(numberOfFunctions, this.bucketName, this.projectID, idExec, this.terminationQueueUrl);
 	}
 
 	public String checkForExecutionErrors() {

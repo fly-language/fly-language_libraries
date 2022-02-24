@@ -1,18 +1,15 @@
 package isislab.awsclient;
 
-import java.util.concurrent.Callable;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.util.Arrays;
+import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedTransferQueue;
+import java.util.zip.GZIPOutputStream;
 
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
-import com.amazonaws.services.sqs.model.CreateQueueRequest;
-import com.amazonaws.services.sqs.model.Message;
-import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
-import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 
 public class TestVMClusterAWS {
 	
@@ -23,16 +20,16 @@ public class TestVMClusterAWS {
 	
 	static Integer vmCount = 2;	
 	static Integer funcCount = 4;
-	static Integer M = 500;	
-	static Integer N = 500;	
+	static Integer M = 10;	
+	static Integer N = 10;	
 	static Integer[] vector = new Integer[N];
 	
 	static ExecutorService __thread_pool_smp = Executors.newFixedThreadPool(4);
-
+/*
 	static AmazonSQS __sqs_aws = AmazonSQSClientBuilder.standard()
 			.withRegion("eu-west-2")							 
 			.withCredentials(new AWSStaticCredentialsProvider(creds))
-			.build();
+			.build();*/
 	
 	static boolean __wait_on_termination_matrixVectorMultiplication_0 = true;
 
@@ -41,132 +38,42 @@ public class TestVMClusterAWS {
 		
 		String region = "eu-west-2";
 		String vmTypeSize_1643452623920 = "c4.large";
-		int vmCount_1643452623920 = 2;
+		int vmCount_1643452623920 = 4;
 		boolean persistent_1643452623920 = true;
 		String purchasingOption_1643452623920 = "spot";
+		int vCPUsCount_33 = 2;
 
 		try {
-			/*
-			String myConst = "[{\"name\":\"vector\",\"type\":\"Integer\",\"value\":[8, 2, 0, 6, 9, 9, 8, 0, 9, 8, 0, 1, 1, 8, 4, 7, 9, 0, 1, 9]}]";
-			JSONArray jsonArray2 = new JSONArray(myConst);
 			
-			JSONArray JSONArrayValues = new JSONObject(jsonArray2.get(0).toString()).getJSONArray("value");
-			System.out.println(JSONArrayValues.getInt(0));
-			*/
-
+			Integer[][] matrix = new Integer[M][N];
 			
-			__wait_on_termination_matrixVectorMultiplication_0=true;
-			__sqs_aws.createQueue(new CreateQueueRequest("termination-matrixVectorMultiplication-"+__id_execution));
-			LinkedTransferQueue<String> __termination_matrixVectorMultiplication_ch_0  = new LinkedTransferQueue<String>();
-			final String __termination_matrixVectorMultiplication_url_0 = __sqs_aws.getQueueUrl("termination-matrixVectorMultiplication-"+__id_execution).getQueueUrl();
-			for(int __i=0;__i< 4;__i++){ 
-				__thread_pool_smp.submit(new Callable<Object>() {
-					@Override
-					public Object call() throws Exception {
-						while(__wait_on_termination_matrixVectorMultiplication_0) {
-							ReceiveMessageRequest __recmsg = new ReceiveMessageRequest(__termination_matrixVectorMultiplication_url_0).
-									withWaitTimeSeconds(1).withMaxNumberOfMessages(10);
-							ReceiveMessageResult __res = __sqs_aws.receiveMessage(__recmsg);
-							for(Message msg : __res.getMessages()) { 
-								__termination_matrixVectorMultiplication_ch_0.put(msg.getBody());
-								__sqs_aws.deleteMessage(__termination_matrixVectorMultiplication_url_0, msg.getReceiptHandle());
-							}
-						}
-						return null;
-					}
-				});
-			}
+			Integer min = 0;
 			
-			aws = new AWSClient(creds,region);
-			aws.setupS3Bucket("flybucketvmcluster");
-			aws.setupTerminationQueue(__termination_matrixVectorMultiplication_url_0);
+			Integer max = 10;
 			
-			int vCPUsCount_10 = aws.getVCPUsCount(vmTypeSize_1643452623920);
 			
-			aws.zipAndUploadCurrentProject();
-					
-			int vmsCreatedCount_10 = aws.launchVMCluster(vmTypeSize_1643452623920, purchasingOption_1643452623920, persistent_1643452623920, vmCount_1643452623920);
-			
-			if ( vmsCreatedCount_10 != 0) {
-				System.out.print("\n\u27A4 Waiting for virtual machines boot script to complete...");
-				while ( __termination_matrixVectorMultiplication_ch_0.size() != vmsCreatedCount_10);
-				System.out.println("Done");
-			}
-			if(vmsCreatedCount_10 != vmCount_1643452623920){
-				if ( vmsCreatedCount_10 > 0) aws.downloadFLYProjectonVMCluster();
+			for(int i=0;i<M;i++){
 				
-				System.out.print("\n\u27A4 Waiting for download project on VM CLuster to complete...");
-				while (__termination_matrixVectorMultiplication_ch_0.size() != (vmCount_1643452623920+vmsCreatedCount_10));
+				{
+					
+					for(int j=0;j<N;j++){
+						
+						{
+							Random r = new Random();
+							
+							Integer x = r.nextInt(max - min) + min;
+							
+							
+							matrix[i][j] =  x;
+						}
+					}
+				}
 			}
-			System.out.println("Done");
+			System.out.println((Arrays.deepToString(matrix)));
 			
-			/*
-			aws.downloadS3ObjectToFile("mySplitsi-02879fc2998be7349.txt");
-			aws.downloadS3ObjectToFile("constValues.txt");
-			
-			FileInputStream fis = new FileInputStream("constValues.txt");       
-			Scanner sc = new Scanner(fis);    //file to be scanned  
-			
-			int i =0;
-			ArrayList<String> myConsts = new ArrayList<>();
-			while(sc.hasNextLine()){ 
-				String c = sc.nextLine();
-				if (i == 0 && c.equals("None")) break;
-				myConsts.add(c);
-			}  
-			sc.close();
-			
-			int x = 0;
-			JSONObject constJsonObject = null;
-			JSONArray constJsonArray = null;
-			constJsonObject = new JSONObject(myConsts.get(x));
-			x++;
-			
-			vmCount = (Integer) constJsonObject.get("value");
-			constJsonObject = new JSONObject(myConsts.get(x));
-			x++;
-			
-			funcCount = (Integer) constJsonObject.get("value");
-			constJsonObject = new JSONObject(myConsts.get(x));
-			x++;
-			
-			M = (Integer) constJsonObject.get("value");
-			constJsonObject = new JSONObject(myConsts.get(x));
-			x++;
-			
-			N = (Integer) constJsonObject.get("value");
-			constJsonObject = new JSONObject(myConsts.get(x));
-			x++;
-			
-			constJsonArray = new JSONArray(constJsonObject.get("value").toString());
-			for (int j=0; j< vector.length; j++){
-				vector[j] = constJsonArray.getInt(j);
-			}
-			
-			System.out.println(Arrays.deepToString(vector));
-			
-			
-			fis = new FileInputStream("mySplitsi-02879fc2998be7349.txt");       
-			sc = new Scanner(fis);    //file to be scanned  
-			
-			ArrayList<String> mySplits = new ArrayList<>();
-			int mySplitsCount = 0;
-			i = 0;
-			while(sc.hasNextLine()){
-				String c = sc.nextLine(); 
-				if (i == 0) mySplitsCount = Integer.parseInt(c);
-				else mySplits.add(c);
-			}
-			sc.close();
-			
-			
-			
-			/*
 			//input array example splitting
-			int splitCount_33 = vCPUsCount_33 * vmCount_1643281687557;
-			int vmCountToUse_33 = vmCount_1643281687557;
-			ArrayList<StringBuilder> __temp_matrix_33 = new ArrayList<StringBuilder>();
-			ArrayList<String> portionInputs_33 = new ArrayList<String>();
+			int splitCount_33 = vCPUsCount_33 * vmCount_1643452623920;
+			int vmCountToUse_33 = vmCount_1643452623920;
 			
 			int __rows_33 = matrix.length;
 			int __cols_33 = matrix[0].length;
@@ -176,52 +83,60 @@ public class TestVMClusterAWS {
 			if ( __rows_33 < splitCount_33) splitCount_33 = __rows_33;
 			if ( splitCount_33 < vmCountToUse_33) vmCountToUse_33 = splitCount_33;
 										
-			int[] dimPortions_33 = new int[splitCount_33]; 
-			int[] displ_33 = new int[splitCount_33]; 
+			int dimPortion_33 = 0;
+			int displ_33 = 0;
 			int offset_33 = 0;
 										
 			for(int __i=0;__i<splitCount_33;__i++){
-				dimPortions_33[__i] = (__rows_33 / splitCount_33) + ((__i < (__rows_33 % splitCount_33)) ? 1 : 0);
-				displ_33[__i] = offset_33;								
-				offset_33 += dimPortions_33[__i];
+				dimPortion_33 = (__rows_33 / splitCount_33) + ((__i < (__rows_33 % splitCount_33)) ? 1 : 0);
+				displ_33 = offset_33;								
+				offset_33 += dimPortion_33;
 											
-				__temp_matrix_33.add(__i,new StringBuilder());
-				__temp_matrix_33.get(__i).append("{\"portionRows\":"+dimPortions_33[__i]+",\"portionCols\":"+__cols_33+",\"portionIndex\":"+__i+",\"portionDisplacement\":"+displ_33[__i]+",\"portionValues\":[");							
-					
-				for(int __j=__current_row_matrix_33; __j<__current_row_matrix_33+dimPortions_33[__i];__j++){
+				StringBuilder __temp_matrix_33 = new StringBuilder();
+				__temp_matrix_33.append("{\"portionRows\":"+dimPortion_33+",\"portionCols\":"+__cols_33+",\"portionIndex\":"+__i+",\"portionDisplacement\":"+displ_33+",\"portionValues\":[");							
+				
+				for(int __j=__current_row_matrix_33; __j<__current_row_matrix_33+dimPortion_33;__j++){
 					for(int __z = 0; __z<matrix[__j].length;__z++){
-						__temp_matrix_33.get(__i).append("{\"x\":"+__j+",\"y\":"+__z+",\"value\":"+matrix[__j][__z]+"},");
+						__temp_matrix_33.append("{\"x\":"+__j+",\"y\":"+__z+",\"value\":"+matrix[__j][__z]+"},");
 					}
-					if(__j == __current_row_matrix_33 + dimPortions_33[__i]-1) {
-						__temp_matrix_33.get(__i).deleteCharAt(__temp_matrix_33.get(__i).length()-1);
-						__temp_matrix_33.get(__i).append("]}");
+					if(__j == __current_row_matrix_33 + dimPortion_33-1) {
+						__temp_matrix_33.deleteCharAt(__temp_matrix_33.length()-1);
+						__temp_matrix_33.append("]}");
 					}
 				}
-				__current_row_matrix_33 +=dimPortions_33[__i];
-				portionInputs_33.add(__generateString(__temp_matrix_33.get(__i).toString(),33));
+				__current_row_matrix_33 +=dimPortion_33;
+				//portionInputs_33.add(__generateString(__temp_matrix_33.get(__i).toString(),33));
+				FileOutputStream output = new FileOutputStream("test_"+__i);
+				try {
+				  Writer writer = new OutputStreamWriter(new GZIPOutputStream(output), "UTF-8");
+				  try {
+				    writer.write(__temp_matrix_33.toString());
+				  } finally {
+				    writer.close();
+				  }
+				 } finally {
+				   output.close();
+				 }
 				
 			}
 			int numberOfFunctions_33 = splitCount_33;
-			int notUsedVMs_33 = vmCount_1643281687557 - vmCountToUse_33;
-			ArrayList<String> constVariables_33 = new ArrayList<String>();
+			int notUsedVMs_33 = vmCount_1643452623920 - vmCountToUse_33;
 			
-			constVariables_33.add("{\"name\":\"vmCount\",\"type\":\"Integer\",\"value\":"+vmCount+"}");
-			
-			constVariables_33.add("{\"name\":\"funcCount\",\"type\":\"Integer\",\"value\":"+funcCount+"}");
-						
-			constVariables_33.add("{\"name\":\"M\",\"type\":\"Integer\",\"value\":"+M+"}");
-			
-			constVariables_33.add("{\"name\":\"N\",\"type\":\"Integer\",\"value\":"+N+"}");
-			
-			constVariables_33.add("{\"name\":\"vector\",\"type\":\"Array_Integer\",\"value\":\""+Arrays.deepToString(vector)+"\"}");
-						
-			
-			aws.executeFLYonVMCluster(portionInputs_33,
-					constVariables_33,
-					numberOfFunctions_33,
-					__id_execution);
-			
-			aws.cleanResources();*/
+			/*GZIPInputStream is =  new GZIPInputStream(new FileInputStream("test_0"));
+			InputStreamReader reader = new InputStreamReader(is);
+			BufferedReader in = new BufferedReader(reader);
+
+			ArrayList<String> __mySplits = new ArrayList<>();
+			int __mySplitsCount = 0;
+			String readed;
+			while ((readed = in.readLine()) != null) {
+				__mySplits.add(readed);
+			}
+			System.out.println(__mySplits);
+			System.out.println("\n" + __mySplits);
+			is.close();
+			reader.close();
+			in.close();*/
 
 			
 		}catch(Exception e){
