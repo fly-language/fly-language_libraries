@@ -3,6 +3,7 @@ package isislab.awsclient;
 import java.util.List;
 
 import com.amazonaws.services.ec2.AmazonEC2;
+import com.amazonaws.services.ec2.model.AmazonEC2Exception;
 import com.amazonaws.services.ec2.model.IamInstanceProfileSpecification;
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.InstanceType;
@@ -31,11 +32,21 @@ public class OnDemandInstancesHandler {
 				   .withUserData(EC2Handler.getUserData(bucketName, queueUrl))
 				   .withIamInstanceProfile(iamInstanceProfile);
 		
-		RunInstancesResult run_response = ec2.runInstances(runInstancesRequest);
-		
-		System.out.println("\n\u27A4 Creating and starting VM Cluster (on-demand) on AWS");
-		
-		return run_response.getReservation().getInstances();
+		int i=0;
+		int maxRetries = 10000;
+		while(i<maxRetries) {
+			try {
+				RunInstancesResult run_response = ec2.runInstances(runInstancesRequest);
+				
+				System.out.println("\n\u27A4 Creating and starting VM Cluster (on-demand) on AWS");
+				
+				return run_response.getReservation().getInstances();
+			}catch(AmazonEC2Exception e) {
+				i++;
+			}
+		}
+		System.out.println("Number of tries exceeded");
+		return null;
 	}
 
 }

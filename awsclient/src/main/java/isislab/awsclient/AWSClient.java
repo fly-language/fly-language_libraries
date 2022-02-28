@@ -9,9 +9,6 @@ import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
-import com.amazonaws.services.ec2.model.DescribeSpotPriceHistoryRequest;
-import com.amazonaws.services.ec2.model.DescribeSpotPriceHistoryResult;
-import com.amazonaws.services.ec2.model.InstanceType;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClientBuilder;
 import com.amazonaws.services.s3.AmazonS3;
@@ -97,8 +94,8 @@ public class AWSClient {
 		return runCommandHandler.checkBuildingStatus(this.bucketName);
 	}
 
-	public void executeFLYonVMCluster(ArrayList<String> objectInputsString, ArrayList<String> constVariables, int numberOfFunctions, long idExec) throws InterruptedException, ExecutionException, IOException {
-		runCommandHandler.executeFLYonVMCluster(objectInputsString, constVariables, numberOfFunctions, this.bucketName, this.projectID, idExec, this.terminationQueueUrl);
+	public void executeFLYonVMCluster(ArrayList<String> objectInputsString, int numberOfFunctions, long idExec) throws InterruptedException, ExecutionException, IOException {
+		runCommandHandler.executeFLYonVMCluster(objectInputsString, numberOfFunctions, this.bucketName, this.projectID, idExec, this.terminationQueueUrl);
 	}
 
 	public String checkForExecutionErrors() {

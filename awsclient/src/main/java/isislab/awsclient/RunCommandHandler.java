@@ -109,7 +109,7 @@ public class RunCommandHandler {
 		}else return "errorReadingFile";
 	}
 
-	protected void executeFLYonVMCluster(ArrayList<String> objectInputsString, ArrayList<String> constVariables, int numberOfFunctions, 
+	protected void executeFLYonVMCluster(ArrayList<String> objectInputsString, int numberOfFunctions, 
 			String bucketName, String projectName, long idExec, String queueUrl) throws InterruptedException, ExecutionException, IOException {
 
 		String docExecutionName = "fly_execution";
@@ -117,7 +117,7 @@ public class RunCommandHandler {
 		int vmCountToUse = this.virtualMachines.size();
 		if(numberOfFunctions < vmCountToUse) vmCountToUse = numberOfFunctions;
 		
-		s3Handler.writeInputObjectsToFileAndUploadToS3(objectInputsString, constVariables, this.virtualMachines, vmCountToUse, bucketName);
+		s3Handler.writeInputObjectsToFileAndUploadToS3(objectInputsString, this.virtualMachines, vmCountToUse, bucketName);
 		
 	    //Create the document for the command
 		for (int i=0; i < vmCountToUse; i++) {

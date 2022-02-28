@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.ec2.AmazonEC2;
+import com.amazonaws.services.ec2.model.AmazonEC2Exception;
 import com.amazonaws.services.ec2.model.CancelSpotInstanceRequestsRequest;
 import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.DescribeSpotInstanceRequestsRequest;
@@ -18,6 +19,7 @@ import com.amazonaws.services.ec2.model.LaunchSpecification;
 import com.amazonaws.services.ec2.model.RequestSpotInstancesRequest;
 import com.amazonaws.services.ec2.model.RequestSpotInstancesResult;
 import com.amazonaws.services.ec2.model.Reservation;
+import com.amazonaws.services.ec2.model.RunInstancesResult;
 import com.amazonaws.services.ec2.model.SpotInstanceRequest;
 
 public class SpotInstancesHandler {
@@ -126,19 +128,30 @@ public class SpotInstancesHandler {
 		// Add the launch specifications to the request.
 		spotRequest.setLaunchSpecification(launchSpecification);
 
-		// Call the RequestSpotInstance API.
-		RequestSpotInstancesResult spotResult = ec2.requestSpotInstances(spotRequest);
-		List<SpotInstanceRequest> spotResponses = spotResult.getSpotInstanceRequests();
-
-		// Setup an arraylist to collect all of the request ids we want to
-		// watch hit the running state.
-		ArrayList<String> spotInstanceRequestIds = new ArrayList<String>();
-
-		for (SpotInstanceRequest requestResponse : spotResponses) {
-			spotInstanceRequestIds.add(requestResponse.getSpotInstanceRequestId());
+		int i=0;
+		int maxRetries = 10000;
+		while(i<maxRetries) {
+			try {
+				// Call the RequestSpotInstance API.
+				RequestSpotInstancesResult spotResult = ec2.requestSpotInstances(spotRequest);
+			
+				List<SpotInstanceRequest> spotResponses = spotResult.getSpotInstanceRequests();
+		
+				// Setup an arraylist to collect all of the request ids we want to
+				// watch hit the running state.
+				ArrayList<String> spotInstanceRequestIds = new ArrayList<String>();
+		
+				for (SpotInstanceRequest requestResponse : spotResponses) {
+					spotInstanceRequestIds.add(requestResponse.getSpotInstanceRequestId());
+				}
+		
+				return spotInstanceRequestIds;
+			}catch(AmazonEC2Exception e) {
+				i++;
+			}
 		}
-
-		return spotInstanceRequestIds;
+		System.out.println("Number of tries exceeded");
+		return null;
 	}
 
 	private String checkSpotRequestsStatus(List<String> spotInstanceRequestIds) {

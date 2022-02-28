@@ -40,7 +40,7 @@ public class TestVMClusterAWS {
 	public static void main(String[] args) throws Exception{
 		
 		String region = "eu-west-2";
-		String vmTypeSize_1643452623920 = "c4.large";
+		String vmTypeSize_1643452623920 = "t3.micro";
 		int vmCount_1643452623920 = 2;
 		boolean persistent_1643452623920 = true;
 		String purchasingOption_1643452623920 = "spot";
@@ -116,36 +116,6 @@ public class TestVMClusterAWS {
 			}  
 			sc.close();
 			
-			int x = 0;
-			JSONObject constJsonObject = null;
-			JSONArray constJsonArray = null;
-			constJsonObject = new JSONObject(myConsts.get(x));
-			x++;
-			
-			vmCount = (Integer) constJsonObject.get("value");
-			constJsonObject = new JSONObject(myConsts.get(x));
-			x++;
-			
-			funcCount = (Integer) constJsonObject.get("value");
-			constJsonObject = new JSONObject(myConsts.get(x));
-			x++;
-			
-			M = (Integer) constJsonObject.get("value");
-			constJsonObject = new JSONObject(myConsts.get(x));
-			x++;
-			
-			N = (Integer) constJsonObject.get("value");
-			constJsonObject = new JSONObject(myConsts.get(x));
-			x++;
-			
-			constJsonArray = new JSONArray(constJsonObject.get("value").toString());
-			for (int j=0; j< vector.length; j++){
-				vector[j] = constJsonArray.getInt(j);
-			}
-			
-			System.out.println(Arrays.deepToString(vector));
-			
-			
 			fis = new FileInputStream("mySplitsi-02879fc2998be7349.txt");       
 			sc = new Scanner(fis);    //file to be scanned  
 			
@@ -203,21 +173,8 @@ public class TestVMClusterAWS {
 			}
 			int numberOfFunctions_33 = splitCount_33;
 			int notUsedVMs_33 = vmCount_1643281687557 - vmCountToUse_33;
-			ArrayList<String> constVariables_33 = new ArrayList<String>();
-			
-			constVariables_33.add("{\"name\":\"vmCount\",\"type\":\"Integer\",\"value\":"+vmCount+"}");
-			
-			constVariables_33.add("{\"name\":\"funcCount\",\"type\":\"Integer\",\"value\":"+funcCount+"}");
-						
-			constVariables_33.add("{\"name\":\"M\",\"type\":\"Integer\",\"value\":"+M+"}");
-			
-			constVariables_33.add("{\"name\":\"N\",\"type\":\"Integer\",\"value\":"+N+"}");
-			
-			constVariables_33.add("{\"name\":\"vector\",\"type\":\"Array_Integer\",\"value\":\""+Arrays.deepToString(vector)+"\"}");
-						
 			
 			aws.executeFLYonVMCluster(portionInputs_33,
-					constVariables_33,
 					numberOfFunctions_33,
 					__id_execution);
 			

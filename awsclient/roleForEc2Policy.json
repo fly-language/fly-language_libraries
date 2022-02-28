@@ -2,43 +2,7 @@
     "Version": "2012-10-17",
     "Statement": [
         {
-            "Effect": "Allow",
-            "Action": [
-                "iam:*",
-                "organizations:DescribeAccount",
-                "organizations:DescribeOrganization",
-                "organizations:DescribeOrganizationalUnit",
-                "organizations:DescribePolicy",
-                "organizations:ListChildren",
-                "organizations:ListParents",
-                "organizations:ListPoliciesForTarget",
-                "organizations:ListRoots",
-                "organizations:ListPolicies",
-                "organizations:ListTargetsForPolicy"
-            ],
-            "Resource": "*"
-        },
-        {
-            "Action": "ec2:*",
-            "Effect": "Allow",
-            "Resource": "*"
-        },
-        {
-            "Effect": "Allow",
-            "Action": "elasticloadbalancing:*",
-            "Resource": "*"
-        },
-        {
-            "Effect": "Allow",
-            "Action": "cloudwatch:*",
-            "Resource": "*"
-        },
-        {
-            "Effect": "Allow",
-            "Action": "autoscaling:*",
-            "Resource": "*"
-        },
-        {
+            "Sid": "VisualEditor0",
             "Effect": "Allow",
             "Action": "iam:CreateServiceLinkedRole",
             "Resource": "*",
@@ -56,19 +20,7 @@
             }
         },
         {
-            "Effect": "Allow",
-            "Action": [
-                "cloudwatch:PutMetricData",
-                "ds:CreateComputer",
-                "ds:DescribeDirectories",
-                "ec2:DescribeInstanceStatus",
-                "logs:*",
-                "ssm:*",
-                "ec2messages:*"
-            ],
-            "Resource": "*"
-        },
-        {
+            "Sid": "VisualEditor1",
             "Effect": "Allow",
             "Action": "iam:CreateServiceLinkedRole",
             "Resource": "arn:aws:iam::*:role/aws-service-role/ssm.amazonaws.com/AWSServiceRoleForAmazonSSM*",
@@ -79,36 +31,48 @@
             }
         },
         {
+            "Sid": "VisualEditor2",
             "Effect": "Allow",
             "Action": [
-                "iam:DeleteServiceLinkedRole",
-                "iam:GetServiceLinkedRoleDeletionStatus"
+                "iam:GetServiceLinkedRoleDeletionStatus",
+                "iam:DeleteServiceLinkedRole"
             ],
             "Resource": "arn:aws:iam::*:role/aws-service-role/ssm.amazonaws.com/AWSServiceRoleForAmazonSSM*"
         },
         {
+            "Sid": "VisualEditor3",
             "Effect": "Allow",
             "Action": [
-                "ssmmessages:CreateControlChannel",
-                "ssmmessages:CreateDataChannel",
+                "organizations:ListRoots",
+                "cloudwatch:PutMetricData",
+                "ds:CreateComputer",
+                "logs:*",
+                "organizations:DescribeAccount",
                 "ssmmessages:OpenControlChannel",
-                "ssmmessages:OpenDataChannel"
-            ],
-            "Resource": "*"
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
+                "autoscaling:*",
+                "sqs:*",
+                "organizations:DescribePolicy",
+                "organizations:ListChildren",
+                "organizations:DescribeOrganization",
+                "ssmmessages:OpenDataChannel",
+                "organizations:DescribeOrganizationalUnit",
+                "ec2messages:*",
+                "ec2:DescribeInstanceStatus",
+                "organizations:ListPoliciesForTarget",
+                "organizations:ListTargetsForPolicy",
                 "s3:*",
-                "s3-object-lambda:*"
+                "elasticloadbalancing:*",
+                "ssmmessages:CreateControlChannel",
+                "s3-object-lambda:*",
+                "organizations:ListPolicies",
+                "ssmmessages:CreateDataChannel",
+                "iam:*",
+                "cloudwatch:*",
+                "ssm:*",
+                "ec2:*",
+                "organizations:ListParents",
+                "ds:DescribeDirectories"
             ],
-            "Resource": "*"
-        },
-        {
-            "Action": [
-                "sqs:*"
-            ],
-            "Effect": "Allow",
             "Resource": "*"
         }
     ]

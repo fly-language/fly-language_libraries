@@ -193,27 +193,8 @@ public class S3Handler {
 		s3.putObject(new PutObjectRequest(bucketName, f.getName(), f));
 	}
 
-	protected void writeInputObjectsToFileAndUploadToS3(ArrayList<String> objectInputsString, ArrayList<String> constVariables, 
+	protected void writeInputObjectsToFileAndUploadToS3(ArrayList<String> objectInputsString,
 			List<Instance> virtualMachines, int vmCountToUse, String bucketName) throws IOException {
-
-		//write file with const vars values
-		File fout = new File("constValues.txt");
-		FileOutputStream fos = new FileOutputStream(fout);
-
-		BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fos));
-
-		if (constVariables.size() > 0) {
-			for (String c : constVariables) {
-				bw.write(c);
-				bw.newLine();
-			}
-		}else bw.write("None");
-		
-		bw.close();
-		
-		uploadFileToS3(bucketName, fout);
-		Files.delete(Path.of(fout.getName()));
-
 
 		//Check if the input is just a range of functions to execute
 		if(objectInputsString.get(0).contains("portionRangeLength")) {
@@ -222,10 +203,10 @@ public class S3Handler {
 			//write files with splits input for each vm
 			for (int i=0; i < vmCountToUse; i++) {
 
-				fout = new File("mySplits"+virtualMachines.get(i).getInstanceId()+".txt");
-				fos = new FileOutputStream(fout);
+				File fout = new File("mySplits"+virtualMachines.get(i).getInstanceId()+".txt");
+				FileOutputStream fos = new FileOutputStream(fout);
 
-				bw = new BufferedWriter(new OutputStreamWriter(fos));
+				BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fos));
 
 				bw.write(objectInputsString.get(i));
 				bw.newLine();
@@ -252,10 +233,10 @@ public class S3Handler {
 
 			for (int i=0; i < vmCountToUse; i++) {
 
-				fout = new File("mySplits"+virtualMachines.get(i).getInstanceId()+".txt");
-				fos = new FileOutputStream(fout);
+				File fout = new File("mySplits"+virtualMachines.get(i).getInstanceId()+".txt");
+				FileOutputStream fos = new FileOutputStream(fout);
 
-				bw = new BufferedWriter(new OutputStreamWriter(fos));
+				BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fos));
 
 				bw.write(String.valueOf(splitCount[i]));
 				bw.newLine();

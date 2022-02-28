@@ -42,7 +42,6 @@ import com.amazonaws.services.ec2.model.TerminateInstancesResult;
 import com.amazonaws.services.ec2.waiters.AmazonEC2Waiters;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
 import com.amazonaws.services.identitymanagement.model.AddRoleToInstanceProfileRequest;
-import com.amazonaws.services.identitymanagement.model.AddRoleToInstanceProfileResult;
 import com.amazonaws.services.identitymanagement.model.AttachRolePolicyRequest;
 import com.amazonaws.services.identitymanagement.model.CreateInstanceProfileRequest;
 import com.amazonaws.services.identitymanagement.model.CreatePolicyRequest;
@@ -256,17 +255,15 @@ public class EC2Handler {
 	private void createInstanceProfileIfNotExists(String instanceProfileName) {
 			//Check if the instance profile exists
 			for (InstanceProfile p : iamClient.listInstanceProfiles().getInstanceProfiles()) if(p.getInstanceProfileName().equals(instanceProfileName)) return; //Instance profile already existent
-		
 	    	//Instance profile has to be created, so check first if the role exists
 			Boolean roleExists = false;
 			String roleName = instanceProfileName;
 	    	for (Role r : iamClient.listRoles().getRoles()) if(r.getRoleName().equals(roleName)) roleExists = true; //Role already existent
-
 	    	if(!roleExists) {
 	    		//The role does not exist, so create it
 	    		try {
 			    	//The specified role does not exist
-				    String assumeRolefileLocation = "assumeRole.json";
+				    String assumeRolefileLocation = "./assumeRole.json";
 		    		FileReader reader = new FileReader(assumeRolefileLocation);
 		            JSONParser jsonParser = new JSONParser();
 		            JSONObject jsonObject = (JSONObject) jsonParser.parse(reader);
@@ -277,7 +274,7 @@ public class EC2Handler {
 		            
 		            iamClient.createRole(roleRequest);
 		            
-				    String policyfileLocation = "roleForEc2Policy.json";
+				    String policyfileLocation = "./roleForEc2Policy.json";
 		    		reader = new FileReader(policyfileLocation);
 		            jsonParser = new JSONParser();
 		            jsonObject = (JSONObject) jsonParser.parse(reader);
@@ -298,8 +295,9 @@ public class EC2Handler {
 	    	
 	    	//Create instance profile
 	    	iamClient.createInstanceProfile(new CreateInstanceProfileRequest().withInstanceProfileName(instanceProfileName));
+
 	    	//Now in both cases, the role is existent, so add the role to the instance profile created
-	    	AddRoleToInstanceProfileResult r = iamClient.addRoleToInstanceProfile(new AddRoleToInstanceProfileRequest().withInstanceProfileName(instanceProfileName).withRoleName(roleName));
+	    	iamClient.addRoleToInstanceProfile(new AddRoleToInstanceProfileRequest().withInstanceProfileName(instanceProfileName).withRoleName(roleName));
 	}
 
 	
