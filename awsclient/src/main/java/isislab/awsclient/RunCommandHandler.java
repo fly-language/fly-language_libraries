@@ -109,17 +109,20 @@ public class RunCommandHandler {
 		}else return "errorReadingFile";
 	}
 
-	protected void executeFLYonVMCluster(int numberOfFunctions, String bucketName, String projectName, long idExec, String queueUrl) throws InterruptedException, ExecutionException, IOException {
+	protected void executeFLYonVMCluster(ArrayList<String> objectInputsString, ArrayList<String> constVariables, int numberOfFunctions, 
+			String bucketName, String projectName, long idExec, String queueUrl) throws InterruptedException, ExecutionException, IOException {
 
 		String docExecutionName = "fly_execution";
 		
 		int vmCountToUse = this.virtualMachines.size();
 		if(numberOfFunctions < vmCountToUse) vmCountToUse = numberOfFunctions;
 		
+		s3Handler.writeInputObjectsToFileAndUploadToS3(objectInputsString, constVariables, this.virtualMachines, vmCountToUse, bucketName);
+		
 	    //Create the document for the command
 		for (int i=0; i < vmCountToUse; i++) {
 			try {
-				createDocumentMethod(getDocumentContent3(projectName, bucketName, i,idExec, queueUrl), docExecutionName+"_"+this.virtualMachines.get(i).getInstanceId());
+				createDocumentMethod(getDocumentContent3(projectName, bucketName, "mySplits"+virtualMachines.get(i).getInstanceId()+".txt",idExec, queueUrl), docExecutionName+"_"+this.virtualMachines.get(i).getInstanceId());
 		    }
 		    catch (IOException e) {
 		      e.printStackTrace();
@@ -214,7 +217,7 @@ public class RunCommandHandler {
 	}
 
 	//Run FLY execution
-	protected static String getDocumentContent3(String projectName, String bucketName, int index, long idExec, String queueUrl) throws IOException {
+	protected static String getDocumentContent3(String projectName, String bucketName, String splitsFileName, long idExec, String queueUrl) throws IOException {
 		return "---" + "\n"
 			+ "schemaVersion: '2.2'" + "\n"
 			+ "description: Execute FLY application." + "\n"
@@ -228,7 +231,7 @@ public class RunCommandHandler {
 			+ "    - chmod -R 777 "+projectName+ "\n"
 			+ "    - mv "+projectName+"/src-gen ."+ "\n"
 			+ "    - mv "+projectName+"/target/"+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar ."+ "\n"
-			+ "    - java -jar "+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar "+index+" "+idExec+ "\n"
+			+ "    - java -jar "+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar "+splitsFileName+" "+idExec+ "\n"
 			+ "    - rm -rf ..?* .[!.]* *"+ "\n" //delete all files (also the hidden ones)
 			+ "    - aws sqs send-message --queue-url "+queueUrl+" --message-body executionTerminated"+ "\n";
 	}
@@ -245,7 +248,6 @@ public class RunCommandHandler {
 			+ "  inputs:" + "\n"
 			+ "    runCommand:" + "\n"
 			+ "    - cd ../../../../home/ubuntu"+ "\n"
-			+ "    - rm -rf ..?* .[!.]* *"+ "\n" //delete all files (also the hidden ones)
 			+ "    - aws s3 sync s3://"+bucketName+" ." + "\n"
 			+ "    - aws sqs send-message --queue-url "+queueUrl+" --message-body downloadTerminated"+ "\n";
 	}
