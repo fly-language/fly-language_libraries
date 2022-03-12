@@ -47,6 +47,7 @@ import com.amazonaws.services.identitymanagement.model.CreateInstanceProfileRequ
 import com.amazonaws.services.identitymanagement.model.CreatePolicyRequest;
 import com.amazonaws.services.identitymanagement.model.CreatePolicyResult;
 import com.amazonaws.services.identitymanagement.model.CreateRoleRequest;
+import com.amazonaws.services.identitymanagement.model.DeleteInstanceProfileRequest;
 import com.amazonaws.services.identitymanagement.model.InstanceProfile;
 import com.amazonaws.services.identitymanagement.model.Role;
 import com.amazonaws.waiters.WaiterParameters;
@@ -255,7 +256,7 @@ public class EC2Handler {
 	private void createInstanceProfileIfNotExists(String instanceProfileName) {
 			//Check if the instance profile exists
 			for (InstanceProfile p : iamClient.listInstanceProfiles().getInstanceProfiles()) if(p.getInstanceProfileName().equals(instanceProfileName)) return; //Instance profile already existent
-	    	//Instance profile has to be created, so check first if the role exists
+			//Instance profile has to be created, so check first if the role exists
 			Boolean roleExists = false;
 			String roleName = instanceProfileName;
 	    	for (Role r : iamClient.listRoles().getRoles()) if(r.getRoleName().equals(roleName)) roleExists = true; //Role already existent
@@ -396,9 +397,7 @@ public class EC2Handler {
 		}
 		
 		if( !terminateClusterNotMatching) {
-    		System.out.print("   \u2022 Emptying the bucket...");
 			this.s3Handler.deleteBucketWithItsContent(bucketName, false);
-		    System.out.println("Done");
 
     		System.out.print("   \u2022 Deleting document commands...");
     		this.runCommandHandler.deleteFLYdocumentsCommand();

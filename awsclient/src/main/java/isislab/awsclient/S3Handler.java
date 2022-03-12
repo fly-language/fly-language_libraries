@@ -42,6 +42,8 @@ public class S3Handler {
 				b = getBucket(bucketName);
 				if (b != null) {
 					System.out.format("   \u2022 Taking the bucket %s already existent.\n", bucketName);
+					//if not empty, empty it
+					deleteBucketWithItsContent(bucketName, true);
 				}else {
 					System.out.format("   \u2022 Bucket  name %s is already used, try another name.\n", bucketName);
 					return "";

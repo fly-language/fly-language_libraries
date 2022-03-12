@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -48,6 +49,7 @@ import com.microsoft.azure.management.appservice.FunctionApp;
 import com.microsoft.azure.management.appservice.OperatingSystem;
 import com.microsoft.azure.management.appservice.PricingTier;
 import com.microsoft.azure.management.appservice.SkuDescription;
+import com.microsoft.azure.management.compute.VirtualMachine;
 import com.microsoft.azure.management.resources.ResourceGroup;
 import com.microsoft.azure.management.resources.fluentcore.arm.Region;
 import com.microsoft.azure.management.storage.StorageAccount;
@@ -595,8 +597,9 @@ public class AzureClient {
 		return error;
 	 }
 	 
-	 public void executeFLYonVMCluster(ArrayList<String> objectInputsString,ArrayList<String> constVariables, int numberOfFunctions, long idExec) throws Exception {
-		 vmClusterHandler.executeFLYonVMCluster(objectInputsString,constVariables, numberOfFunctions, this.projectID, idExec, this.httpClient, this.resourceGroup.name(), getOAuthToken(), this.terminationQueueName);
+	 public void executeFLYonVMCluster(ArrayList<String> objectInputsString, int numberOfFunctions, long idExec) throws Exception {
+		 writeInputObjectsToFileAndUploadToCloud(objectInputsString, vmClusterHandler.virtualMachines, numberOfFunctions);
+		 vmClusterHandler.executeFLYonVMCluster(objectInputsString, numberOfFunctions, this.projectID, idExec, this.httpClient, this.resourceGroup.name(), getOAuthToken(), this.terminationQueueName);
 	 }
 	 
 	 
@@ -608,4 +611,69 @@ public class AzureClient {
 	 public void deleteResourcesAllocated() throws URISyntaxException, StorageException {
 		 vmClusterHandler.deleteResourcesAllocated(this.resourceGroup.name(), false, this.cloudStorageAccount);
 	 }
+	 
+	 private void writeInputObjectsToFileAndUploadToCloud(ArrayList<String> objectInputsString, List<VirtualMachine> virtualMachines, int numberOfFunctions) throws InvalidKeyException, URISyntaxException, StorageException, IOException {
+		
+			int vmCountToUse = virtualMachines.size();
+			if(numberOfFunctions < vmCountToUse) vmCountToUse = numberOfFunctions;
+			
+			//Check if the input is just a range of functions to execute
+			if(objectInputsString.get(0).contains("portionRangeLength")) {
+				//Range input
+	
+				//write files with splits input for each vm
+				for (int i=0; i < vmCountToUse; i++) {
+	
+					File fout = new File("mySplits"+virtualMachines.get(i).id()+".txt");
+					FileOutputStream fos = new FileOutputStream(fout);
+	
+					BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fos));
+	
+					bw.write(objectInputsString.get(i));
+					bw.newLine();
+					
+					bw.close();
+					
+					uploadFile(fout);
+					Files.delete(Path.of(fout.getName()));
+				}
+			}else {
+				//Array or matrix split input
+				//Specify how many splits each VM has to compute
+				int splitsNum = objectInputsString.size();
+
+				int[] splitCount = new int[vmCountToUse];
+				int[] displ = new int[vmCountToUse]; 
+				int offset = 0;
+
+				for(int i=0; i < vmCountToUse; i++) {
+					splitCount[i] = ( splitsNum / vmCountToUse) + ((i < (splitsNum % vmCountToUse)) ? 1 : 0);
+					displ[i] = offset;
+					offset += splitCount[i];
+				}
+
+				for (int i=0; i < vmCountToUse; i++) {
+
+					File fout = new File("mySplits"+virtualMachines.get(i).id()+".txt");
+					FileOutputStream fos = new FileOutputStream(fout);
+
+					BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fos));
+
+					bw.write(String.valueOf(splitCount[i]));
+					bw.newLine();
+					
+					//Select my part of splits
+					for(int k=displ[i]; k < displ[i] + splitCount[i]; k++) {
+						bw.write(objectInputsString.get(k));
+						bw.newLine();
+					}
+					
+					bw.close();
+					
+					uploadFile(fout);
+					Files.delete(Path.of(fout.getName()));
+				}
+			}
+	 }
+
 }

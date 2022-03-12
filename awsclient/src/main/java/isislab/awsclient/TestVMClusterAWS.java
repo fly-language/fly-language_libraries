@@ -40,10 +40,10 @@ public class TestVMClusterAWS {
 	public static void main(String[] args) throws Exception{
 		
 		String region = "eu-west-2";
-		String vmTypeSize_1643452623920 = "t3.micro";
+		String vmTypeSize_1643452623920 = "t2.micro";
 		int vmCount_1643452623920 = 2;
 		boolean persistent_1643452623920 = true;
-		String purchasingOption_1643452623920 = "spot";
+		String purchasingOption_1643452623920 = "on-demand";
 
 		try {
 			/*

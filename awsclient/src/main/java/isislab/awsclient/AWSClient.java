@@ -95,6 +95,7 @@ public class AWSClient {
 	}
 
 	public void executeFLYonVMCluster(ArrayList<String> objectInputsString, int numberOfFunctions, long idExec) throws InterruptedException, ExecutionException, IOException {
+		runCommandHandler.deleteFLYdocumentsCommand();
 		runCommandHandler.executeFLYonVMCluster(objectInputsString, numberOfFunctions, this.bucketName, this.projectID, idExec, this.terminationQueueUrl);
 	}
 

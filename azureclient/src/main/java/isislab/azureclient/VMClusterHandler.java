@@ -41,7 +41,7 @@ public class VMClusterHandler {
 	private boolean persistent;
 	private StorageAccount sa;
 	private String subscriptionId;
-	private List<VirtualMachine> virtualMachines;
+	protected List<VirtualMachine> virtualMachines;
 	private String id;
 	
 	public VMClusterHandler (Azure azure, Region region, String subscriptionId, String id) {
@@ -230,7 +230,7 @@ public class VMClusterHandler {
 	}
 	
 	
-	protected void executeFLYonVMCluster(ArrayList<String> objectInputsString, ArrayList<String> constVariables, int numberOfFunctions, 
+	protected void executeFLYonVMCluster(ArrayList<String> objectInputsString, int numberOfFunctions, 
 			String uriBlob, long idExec, AsyncHttpClient httpClient, String resourceGroupName, String token, String terminationQueueName) throws Exception {
 
   		//extract project name
@@ -238,66 +238,27 @@ public class VMClusterHandler {
   		//trim the extension
   		projectName = projectName.substring(0, projectName.lastIndexOf("."));
 
-		int vmCount = this.virtualMachines.size();
+		int vmCountToUse = this.virtualMachines.size();
+		if(numberOfFunctions < vmCountToUse) vmCountToUse = numberOfFunctions;
 		List<Response> responses = new ArrayList<>();
-
+		
 		//FLY execution
 		System.out.println("\n\u27A4 Fly execution...");
-		
-		//using ♢ as special string (this could be a problem if there is this ♢ in the strings element) -> a better solution should be
-		//post this object on cloud and then take it from there already formatted
-		String constVariablesString = "";
-		if (constVariables.size() > 0) {
-			for (String c : constVariables) constVariablesString = constVariablesString + "\u2662" + c;
-		}else constVariablesString = "None";
-		
-		for (int i=0; i< vmCount; i++) {
-			String commandBody = "";
-			//Check if the input is just a range of functions to execute
-			if(objectInputsString.get(0).contains("portionRangeLength")) {
-				//Range input
-				commandBody = "{\"commandId\": \"RunShellScript\",\"script\": ["
-						+ "\"cd ../../../../../../home/"+FLY_VM_USER+"\","
-						+ "\"chmod -R 777 "+projectName+"\","
-						+ "\"mv "+projectName+"/src-gen .\","
-						+ "\"mv "+projectName+"/target/"+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar .\","
-						+ "\"java -jar "+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar "+objectInputsString.get(i).replace("\"", "\\\"") +" "+constVariablesString+" "+idExec+" 2> executionError 1> executionOutput\","
-						+ "\"az storage blob upload -c bucket-"+id+" -f executionError --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
-						+ "\"az storage blob upload -c bucket-"+id+" -f executionOutput --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
-						+ "\"az storage message put --content executionTerminated --queue-name "+terminationQueueName+" --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
-						+ "\"rm -rf ..?* .[!.]* *\"]"
-						+"}";
-			}else {
-				//Array or matrix split input
-				//Specify how many splits each VM has to compute
-				int splitsNum = objectInputsString.size();
-				
-				int[] splitCount = new int[vmCount];
-				int[] displ = new int[vmCount]; 
-				int offset = 0;
-				
-				for(int j=0; j < vmCount; j++) {
-					splitCount[j] = ( splitsNum / vmCount) + ((j < (splitsNum % vmCount)) ? 1 : 0);
-					displ[j] = offset;
-					offset += splitCount[j];
-				}
-				
-				//Select my part of splits
-				String mySplits = splitCount[i] + "";
-				for(int k=displ[i]; k < displ[i] + splitCount[i]; k++) mySplits = mySplits + "\u2662" + objectInputsString.get(k);
-				
-				commandBody = "{\"commandId\": \"RunShellScript\",\"script\": ["
-						+ "\"cd ../../../../../../home/"+FLY_VM_USER+"\","
-						+ "\"chmod -R 777 "+projectName+"\","
-						+ "\"mv "+projectName+"/src-gen .\","
-						+ "\"mv "+projectName+"/target/"+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar .\","
-						+ "\"java -jar "+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar "+mySplits.replace("\"", "\\\"")+" "+constVariablesString+" "+idExec+" 2> executionError 1> executionOutput\","
-						+ "\"az storage blob upload -c bucket-"+id+" -f executionError --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
-						+ "\"az storage blob upload -c bucket-"+id+" -f executionOutput --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
-						+ "\"az storage message put --content executionTerminated --queue-name "+terminationQueueName+" --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
-						+ "\"rm -rf ..?* .[!.]* *\"]"
-						+"}";
-			}
+
+		for (int i=0; i< vmCountToUse; i++) {
+			String mySplitFileName = "mySplits"+this.virtualMachines.get(i).id()+".txt";
+			
+			String commandBody = "{\"commandId\": \"RunShellScript\",\"script\": ["
+								+ "\"cd ../../../../../../home/"+FLY_VM_USER+"\","
+								+ "\"chmod -R 777 "+projectName+"\","
+								+ "\"mv "+projectName+"/src-gen .\","
+								+ "\"mv "+projectName+"/target/"+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar .\","
+								+ "\"java -jar "+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar "+mySplitFileName+" "+idExec+" 2> executionError 1> executionOutput\","
+								+ "\"az storage blob upload -c bucket-"+id+" -f executionError --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
+								+ "\"az storage blob upload -c bucket-"+id+" -f executionOutput --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
+								+ "\"az storage message put --content executionTerminated --queue-name "+terminationQueueName+" --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
+								+ "\"rm -rf ..?* .[!.]* *\"]"
+								+"}";
 			
 			System.out.println("   \u2022 Executing on VM "+this.virtualMachines.get(i).name());
 	    	while (true) {
