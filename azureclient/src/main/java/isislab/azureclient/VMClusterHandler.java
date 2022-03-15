@@ -297,7 +297,10 @@ public class VMClusterHandler {
 						System.out.println("   \u2022 Commands provisioning failed - follow response body");
 						System.out.println(whenResponse.get().getResponseBody());
 						commandsInProgress = false;
-					}else commandsInProgress = true;
+					}else{
+						System.out.println(whenResponse.get().getResponseBody());
+						commandsInProgress = true;
+					}
 				}else {
 					System.out.print("STATUS CODE-> "+r.getStatusCode());
 					System.out.println("- STATUS TEXT-> "+r.getStatusText());

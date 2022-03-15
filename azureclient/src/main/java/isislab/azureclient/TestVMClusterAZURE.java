@@ -97,6 +97,25 @@ public class TestVMClusterAZURE {
 		}
 		System.out.println("Done");
 		
+		/*String mainClass_12 = "TestVMClusterAZURE";
+		azure.buildFLYProjectOnVMCluster(mainClass_12);
+		
+		System.out.print("\n\u27A4 Waiting for building project on VM CLuster to complete...");
+		if(vmsCreatedCount_0 != vmCount_1641303728741){
+			while ( __termination_partialArray_ch_0.size() != ( (vmCount_1641303728741*2)+vmsCreatedCount_0));
+		} else {
+			while (__termination_partialArray_ch_0.size() != (vmCount_1641303728741*2));
+		}
+		System.out.println("Done");
+		
+		//Check for building errors
+		String err_build_12 = azure.checkBuildingStatus();
+		if (err_build_12 != null) {
+			//Print the error within each VM
+			System.out.println("The building failed with the following errors in each VM:");
+			System.out.println(err_build_12);
+			return;
+		}*/
 		int vmCount_7 = vmCount_1641303728741;
 		int numberOfFunctions_7 = 100 - 0;
 		
@@ -121,26 +140,6 @@ public class TestVMClusterAZURE {
 		}
 		numberOfFunctions_7 = vmCount_7;
 		int notUsedVMs_7 = vmCount_1641303728741 - vmCount_7;
-				
-		/*String mainClass_12 = "TestVMClusterAZURE";
-		azure.buildFLYProjectOnVMCluster(mainClass_12);
-		
-		System.out.print("\n\u27A4 Waiting for building project on VM CLuster to complete...");
-		if(vmsCreatedCount_0 != vmCount_1641303728741){
-			while ( __termination_partialArray_ch_0.size() != ( (vmCount_1641303728741*2)+vmsCreatedCount_0));
-		} else {
-			while (__termination_partialArray_ch_0.size() != (vmCount_1641303728741*2));
-		}
-		System.out.println("Done");
-		
-		//Check for building errors
-		String err_build_12 = azure.checkBuildingStatus();
-		if (err_build_12 != null) {
-			//Print the error within each VM
-			System.out.println("The building failed with the following errors in each VM:");
-			System.out.println(err_build_12);
-			return;
-		}*/
 		
 		
 		//Splitting
