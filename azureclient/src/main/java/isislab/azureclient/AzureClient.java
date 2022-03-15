@@ -624,7 +624,7 @@ public class AzureClient {
 				//write files with splits input for each vm
 				for (int i=0; i < vmCountToUse; i++) {
 	
-					File fout = new File("mySplits"+virtualMachines.get(i).id()+".txt");
+					File fout = new File("mySplits_"+virtualMachines.get(i).name()+".txt");
 					FileOutputStream fos = new FileOutputStream(fout);
 	
 					BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fos));
@@ -654,7 +654,7 @@ public class AzureClient {
 
 				for (int i=0; i < vmCountToUse; i++) {
 
-					File fout = new File("mySplits"+virtualMachines.get(i).id()+".txt");
+					File fout = new File("mySplits_"+virtualMachines.get(i).name()+".txt");
 					FileOutputStream fos = new FileOutputStream(fout);
 
 					BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fos));
