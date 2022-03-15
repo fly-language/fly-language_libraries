@@ -246,7 +246,7 @@ public class VMClusterHandler {
 		System.out.println("\n\u27A4 Fly execution...");
 
 		for (int i=0; i< vmCountToUse; i++) {
-			String mySplitFileName = "mySplits"+this.virtualMachines.get(i).id()+".txt";
+			String mySplitFileName = "mySplits"+this.virtualMachines.get(i).name()+".txt";
 			
 			String commandBody = "{\"commandId\": \"RunShellScript\",\"script\": ["
 								+ "\"cd ../../../../../../home/"+FLY_VM_USER+"\","
