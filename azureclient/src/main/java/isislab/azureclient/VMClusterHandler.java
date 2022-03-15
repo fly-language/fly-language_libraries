@@ -278,7 +278,7 @@ public class VMClusterHandler {
 		    	}
 	    	}
 		}
-		
+		System.out.println("   \u2022 Commands launched");
     	//Ensure the commands are succeed
     	boolean commandsInProgress = true;
 		while (commandsInProgress) {
@@ -289,8 +289,15 @@ public class VMClusterHandler {
 		  					.addHeader("Content-Type", "application/json")
 							.execute();
 					
-					if ( whenResponse.get().getResponseBody().contains("Provisioning succeeded")) commandsInProgress = false;
-					else commandsInProgress = true;
+					if ( whenResponse.get().getResponseBody().contains("succeeded")) {
+						commandsInProgress = false;
+					    System.out.println("   \u2022 Commands provisioning succeded");
+					}else if (whenResponse.get().getResponseBody().contains("failed")
+							|| whenResponse.get().getResponseBody().contains("canceled")) {
+						System.out.println("   \u2022 Commands provisioning failed - follow response body");
+						System.out.println(whenResponse.get().getResponseBody());
+						commandsInProgress = false;
+					}else commandsInProgress = true;
 				}else {
 					System.out.print("STATUS CODE-> "+r.getStatusCode());
 					System.out.println("- STATUS TEXT-> "+r.getStatusText());
@@ -300,7 +307,6 @@ public class VMClusterHandler {
 		}
 		
 		//No need to check for command provisioning , if all results are published on the results queue the execution is went well
-	    System.out.println("   \u2022 Commands provisioning succeded");
 	}
 	
 	protected String checkForExecutionErrors(String executionErrortFileName) throws IOException {

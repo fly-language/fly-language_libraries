@@ -24,10 +24,10 @@ public class TestVMClusterAZURE {
 	
 	public static void main(String[] args) throws Exception {
 
-		String clientId = "6501f541-fad9-4bc9-91a5-1829d7f532bf";
-		String tenantId = "c30767db-3dda-4dd4-8a4d-097d22cb99d3";
-		String secret = "v2i1fR0v3agHx7Hh7Gf-xQ-1_hBc_TErp6";
-		String subscriptionId = "435d02f4-3bb6-4c41-bee0-c330507d849c";
+		String clientId = "";
+		String tenantId = "";
+		String secret = "";
+		String subscriptionId = "";
 		
 		String vmTypeSize_1641303728741 = "Standard_B1s"; //Standard_B1s, Standard_B2s as an alternative, be careful 4 vCPUs are allowed as max with Student Subscription
 		String purchasingOption_1641303728741 = "on-demand";
