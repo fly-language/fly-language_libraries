@@ -270,6 +270,7 @@ public class VMClusterHandler {
 		    	
 		    	if (whenResponse.get().getStatusCode() == 409) {
 		    		//Conflict with a previous command, retry again in a bit
+		    		System.out.println("Status code 409: conflict with previous command.");
 		    		Thread.sleep(1000);
 		    	}else {
 					responses.add(whenResponse.get());
@@ -291,15 +292,12 @@ public class VMClusterHandler {
 					if ( whenResponse.get().getResponseBody().contains("Provisioning succeeded")) commandsInProgress = false;
 					else commandsInProgress = true;
 				}else {
-					if (r.getStatusCode() == 400) {
-						System.out.println("STATUS -> "+r.getStatusCode());
-						System.out.println("STATUS -> "+r.getStatusText());
-						return;
-					}else System.out.println("STATUS -> "+r.getStatusCode());
+					System.out.print("STATUS CODE-> "+r.getStatusCode());
+					System.out.println("- STATUS TEXT-> "+r.getStatusText());
+					return;
 				}
 			}
 		}
-
 		
 		//No need to check for command provisioning , if all results are published on the results queue the execution is went well
 	    System.out.println("   \u2022 Commands provisioning succeded");
