@@ -598,8 +598,8 @@ public class AzureClient {
 	 }
 	 
 	 public void executeFLYonVMCluster(ArrayList<String> objectInputsString, int numberOfFunctions, long idExec) throws Exception {
-		 writeInputObjectsToFileAndUploadToCloud(objectInputsString, vmClusterHandler.virtualMachines, numberOfFunctions);
-		 vmClusterHandler.executeFLYonVMCluster(objectInputsString, numberOfFunctions, this.projectID, idExec, this.httpClient, this.resourceGroup.name(), getOAuthToken(), this.terminationQueueName);
+		 ArrayList<String> urisBlob = writeInputObjectsToFileAndUploadToCloud(objectInputsString, vmClusterHandler.virtualMachines, numberOfFunctions);
+		 vmClusterHandler.executeFLYonVMCluster(objectInputsString, urisBlob, numberOfFunctions, this.projectID, idExec, this.httpClient, this.resourceGroup.name(), getOAuthToken(), this.terminationQueueName);
 	 }
 	 
 	 
@@ -612,10 +612,12 @@ public class AzureClient {
 		 vmClusterHandler.deleteResourcesAllocated(this.resourceGroup.name(), false, this.cloudStorageAccount);
 	 }
 	 
-	 private void writeInputObjectsToFileAndUploadToCloud(ArrayList<String> objectInputsString, List<VirtualMachine> virtualMachines, int numberOfFunctions) throws InvalidKeyException, URISyntaxException, StorageException, IOException {
+	 private ArrayList<String> writeInputObjectsToFileAndUploadToCloud(ArrayList<String> objectInputsString, List<VirtualMachine> virtualMachines, int numberOfFunctions) throws InvalidKeyException, URISyntaxException, StorageException, IOException {
 		
 			int vmCountToUse = virtualMachines.size();
 			if(numberOfFunctions < vmCountToUse) vmCountToUse = numberOfFunctions;
+			
+			ArrayList<String> urisBlob = new ArrayList<String>();
 			
 			//Check if the input is just a range of functions to execute
 			if(objectInputsString.get(0).contains("portionRangeLength")) {
@@ -634,7 +636,7 @@ public class AzureClient {
 					
 					bw.close();
 					
-					uploadFile(fout);
+					urisBlob.add(uploadFile(fout));
 					Files.delete(Path.of(fout.getName()));
 				}
 			}else {
@@ -670,10 +672,11 @@ public class AzureClient {
 					
 					bw.close();
 					
-					uploadFile(fout);
+					urisBlob.add(uploadFile(fout));
 					Files.delete(Path.of(fout.getName()));
 				}
 			}
+			return urisBlob;
 	 }
 
 }

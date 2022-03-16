@@ -230,7 +230,7 @@ public class VMClusterHandler {
 	}
 	
 	
-	protected void executeFLYonVMCluster(ArrayList<String> objectInputsString, int numberOfFunctions, 
+	protected void executeFLYonVMCluster(ArrayList<String> objectInputsString, ArrayList<String> urisBlob, int numberOfFunctions, 
 			String uriBlob, long idExec, AsyncHttpClient httpClient, String resourceGroupName, String token, String terminationQueueName) throws Exception {
 
   		//extract project name
@@ -253,6 +253,7 @@ public class VMClusterHandler {
 								+ "\"chmod -R 777 "+projectName+"\","
 								+ "\"mv "+projectName+"/src-gen .\","
 								+ "\"mv "+projectName+"/target/"+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar .\","
+								+ "\"curl "+urisBlob.get(i)+"\","
 								+ "\"java -jar "+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar "+mySplitFileName+" "+idExec+" 2> executionError 1> executionOutput\","
 								+ "\"az storage blob upload -c bucket-"+id+" -f executionError --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
 								+ "\"az storage blob upload -c bucket-"+id+" -f executionOutput --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
