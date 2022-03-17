@@ -247,13 +247,13 @@ public class VMClusterHandler {
 
 		for (int i=0; i< vmCountToUse; i++) {
 			String mySplitFileName = "mySplits"+this.virtualMachines.get(i).name()+".txt";
-			
+						
 			String commandBody = "{\"commandId\": \"RunShellScript\",\"script\": ["
 								+ "\"cd ../../../../../../home/"+FLY_VM_USER+"\","
 								+ "\"chmod -R 777 "+projectName+"\","
 								+ "\"mv "+projectName+"/src-gen .\","
 								+ "\"mv "+projectName+"/target/"+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar .\","
-								+ "\"curl "+urisBlob.get(i)+"\","
+								+ "\"curl "+urisBlob.get(i)+" --output "+mySplitFileName+"\","
 								+ "\"java -jar "+projectName+"-0.0.1-SNAPSHOT-jar-with-dependencies.jar "+mySplitFileName+" "+idExec+" 2> executionError 1> executionOutput\","
 								+ "\"az storage blob upload -c bucket-"+id+" -f executionError --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
 								+ "\"az storage blob upload -c bucket-"+id+" -f executionOutput --account-name "+this.sa.name()+" --account-key "+this.sa.getKeys().get(0).value()+"\","
@@ -299,7 +299,7 @@ public class VMClusterHandler {
 						System.out.println(whenResponse.get().getResponseBody());
 						commandsInProgress = false;
 					}else{
-						System.out.println(whenResponse.get().getResponseBody());
+						//System.out.println(whenResponse.get().getResponseBody());
 						commandsInProgress = true;
 					}
 				}else {
