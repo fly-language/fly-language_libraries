@@ -288,8 +288,11 @@ public class EC2Handler {
 	    	//Check if the instance profile exists
 			for (InstanceProfile p : iamClient.listInstanceProfiles().getInstanceProfiles()) {
 				if(p.getInstanceProfileName().equals(instanceProfileName)) {
+					for(Role r : p.getRoles()) {
+						if (r.getRoleName().equals(roleName)) return;
+					}
 					iamClient.addRoleToInstanceProfile(new AddRoleToInstanceProfileRequest().withInstanceProfileName(instanceProfileName).withRoleName(roleName));
-					return; //Instance profile already existent
+					return;
 				}
 			}
 	    	

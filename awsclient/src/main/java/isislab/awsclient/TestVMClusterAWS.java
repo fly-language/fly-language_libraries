@@ -77,6 +77,7 @@ public class TestVMClusterAWS {
 					}
 				});
 			}
+		
 			aws = new AWSClient(creds,region);
 			
 			aws.setupS3Bucket("flybucketvmcluster");
