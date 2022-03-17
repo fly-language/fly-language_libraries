@@ -44,6 +44,7 @@ public class TestVMClusterAWS {
 		int vmCount_1643452623920 = 2;
 		boolean persistent_1643452623920 = true;
 		String purchasingOption_1643452623920 = "on-demand";
+		
 
 		try {
 			/*
@@ -76,8 +77,8 @@ public class TestVMClusterAWS {
 					}
 				});
 			}
-			
 			aws = new AWSClient(creds,region);
+			
 			aws.setupS3Bucket("flybucketvmcluster");
 			aws.setupTerminationQueue(__termination_matrixVectorMultiplication_url_0);
 			

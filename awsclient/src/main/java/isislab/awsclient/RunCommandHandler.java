@@ -16,6 +16,7 @@ import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagement
 import com.amazonaws.services.simplesystemsmanagement.model.AWSSimpleSystemsManagementException;
 import com.amazonaws.services.simplesystemsmanagement.model.CreateDocumentRequest;
 import com.amazonaws.services.simplesystemsmanagement.model.DeleteDocumentRequest;
+import com.amazonaws.services.simplesystemsmanagement.model.DocumentAlreadyExistsException;
 import com.amazonaws.services.simplesystemsmanagement.model.DocumentIdentifier;
 import com.amazonaws.services.simplesystemsmanagement.model.ListDocumentsRequest;
 import com.amazonaws.services.simplesystemsmanagement.model.ListDocumentsResult;
@@ -265,6 +266,10 @@ public class RunCommandHandler {
 	     
 	     do {
 		     try {
+		    	 ssm.createDocument(createDocRequest);
+		    	 return;
+		     }catch(DocumentAlreadyExistsException ex) {
+		    	 deleteFLYdocumentsCommand();
 		    	 ssm.createDocument(createDocRequest);
 		    	 return;
 		     }catch(AWSSimpleSystemsManagementException e) {

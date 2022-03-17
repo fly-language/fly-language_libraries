@@ -11,6 +11,11 @@ import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClientBuilder;
+import com.amazonaws.services.identitymanagement.model.AttachRolePolicyRequest;
+import com.amazonaws.services.identitymanagement.model.CreatePolicyRequest;
+import com.amazonaws.services.identitymanagement.model.CreatePolicyResult;
+import com.amazonaws.services.identitymanagement.model.CreateRoleRequest;
+import com.amazonaws.services.identitymanagement.model.CreateRoleResult;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagement;
@@ -110,48 +115,4 @@ public class AWSClient {
 	public void deleteResourcesAllocated() {
 		ec2Handler.deleteResourcesAllocated(false, this.bucketName);
 	}
-
-	/*
-	 //test creation document command
-	 public void testMethod(ArrayList<String> objectInputsString, ArrayList<String> constVariables, int numberOfFunctions, long idExec) throws InterruptedException {
-		 String constVariablesString = "None";
-		 if (constVariables.size() > 0) {
-			constVariablesString = constVariables.get(0);
-			for (String c : constVariables) constVariablesString = constVariablesString + "♢" + c;
-		 }
-
-		String docExecutionName = "fly_execution";
-		int vmCount = 8;
-
-		//Array or matrix split input
-		//Specify how many splits each VM has to compute
-		int splitsNum = objectInputsString.size();
-
-		int[] splitCount = new int[vmCount];
-		int[] displ = new int[vmCount]; 
-		int offset = 0;
-
-		for(int i=0; i < vmCount; i++) {
-			splitCount[i] = ( splitsNum / vmCount) + ((i < (splitsNum % vmCount)) ? 1 : 0);
-			displ[i] = offset;
-			offset += splitCount[i];
-		}
-
-	    //Create the document for the command
-		try {
-			for (int i=0; i < vmCount; i++) {
-				//Select my part of splits
-				String mySplits = splitCount[i] + "";
-				for(int k=displ[i]; k < displ[i] + splitCount[i]; k++) mySplits = mySplits + "♢" + objectInputsString.get(k);
-
-				runCommandHandler.createDocumentMethod(RunCommandHandler.getDocumentContent3("test",bucketName,mySplits,constVariablesString, idExec, "test_queue_url"), 
-					docExecutionName+"vmInstanceID"+i);
-			}
-	    }
-	    catch (IOException e) {
-	      e.printStackTrace();
-	    }
-	 }*/
-	
-
 }

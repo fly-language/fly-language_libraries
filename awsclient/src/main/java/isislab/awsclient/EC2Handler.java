@@ -257,8 +257,6 @@ public class EC2Handler {
 	}
 	
 	private void createInstanceProfileIfNotExists(String instanceProfileName) {
-			//Check if the instance profile exists
-			for (InstanceProfile p : iamClient.listInstanceProfiles().getInstanceProfiles()) if(p.getInstanceProfileName().equals(instanceProfileName)) return; //Instance profile already existent
 			//Instance profile has to be created, so check first if the role exists
 			Boolean roleExists = false;
 			String roleName = instanceProfileName;
@@ -267,50 +265,39 @@ public class EC2Handler {
 	    		//The role does not exist, so create it
 	    		try {
 			    	//The specified role does not exist
-	    			
-	    			//TEST
-	    			Process p = Runtime.getRuntime().exec("pwd");
-	    			BufferedReader p_output2 = new BufferedReader(new InputStreamReader(p.getInputStream()));
-	    			String whereami = p_output2.readLine();
-	    			System.out.println("role whereami ->"+whereami);
-	    			
-	    			
-	    			//END TEST
-				    String assumeRolefileLocation = "./assumeRole.json";
-		    		FileReader reader = new FileReader(assumeRolefileLocation);
-		            JSONParser jsonParser = new JSONParser();
-		            JSONObject jsonObject = (JSONObject) jsonParser.parse(reader);
-		
 		            CreateRoleRequest roleRequest = new CreateRoleRequest()
 		            		.withRoleName(roleName)
-		            		.withAssumeRolePolicyDocument(jsonObject.toJSONString());
+		            		.withAssumeRolePolicyDocument(EC2RolesUtils.ASSUME_ROLE_DOCUMENT);
 		            
 		            iamClient.createRole(roleRequest);
-		            
-				    String policyfileLocation = "./roleForEc2Policy.json";
-		    		reader = new FileReader(policyfileLocation);
-		            jsonParser = new JSONParser();
-		            jsonObject = (JSONObject) jsonParser.parse(reader);
 
 		            CreatePolicyRequest policyRequest = new CreatePolicyRequest()
-		            		.withPolicyDocument(jsonObject.toJSONString())
-		            		.withPolicyName("ec2RolePolicy");
+		            		.withPolicyName("ec2RolePolicy")
+		            		.withPolicyDocument(EC2RolesUtils.ROLE_EC2_POLICY_DOCUMENT);
 	   
 		            CreatePolicyResult res = iamClient.createPolicy(policyRequest);
+		            
 		            String policyARN = res.getPolicy().getArn();
 		            
-		            iamClient.attachRolePolicy(new AttachRolePolicyRequest().withPolicyArn(policyARN).withRoleName(roleName));
-		
+		            iamClient.attachRolePolicy(new AttachRolePolicyRequest().withPolicyArn(policyARN).withRoleName(roleName));		
 		        } catch (Exception e) {
 		            e.printStackTrace();
 		        }
 	    	}
 	    	
+	    	//Check if the instance profile exists
+			for (InstanceProfile p : iamClient.listInstanceProfiles().getInstanceProfiles()) {
+				if(p.getInstanceProfileName().equals(instanceProfileName)) {
+					iamClient.addRoleToInstanceProfile(new AddRoleToInstanceProfileRequest().withInstanceProfileName(instanceProfileName).withRoleName(roleName));
+					return; //Instance profile already existent
+				}
+			}
+	    	
 	    	//Create instance profile
 	    	iamClient.createInstanceProfile(new CreateInstanceProfileRequest().withInstanceProfileName(instanceProfileName));
 
 	    	//Now in both cases, the role is existent, so add the role to the instance profile created
-	    	iamClient.addRoleToInstanceProfile(new AddRoleToInstanceProfileRequest().withInstanceProfileName(instanceProfileName).withRoleName(roleName));
+			iamClient.addRoleToInstanceProfile(new AddRoleToInstanceProfileRequest().withInstanceProfileName(instanceProfileName).withRoleName(roleName));
 	}
 
 	
