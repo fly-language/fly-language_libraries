@@ -1,6 +1,9 @@
 package isislab.awsclient;
 
+import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
+import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -264,6 +267,15 @@ public class EC2Handler {
 	    		//The role does not exist, so create it
 	    		try {
 			    	//The specified role does not exist
+	    			
+	    			//TEST
+	    			Process p = Runtime.getRuntime().exec("pwd");
+	    			BufferedReader p_output2 = new BufferedReader(new InputStreamReader(p.getInputStream()));
+	    			String whereami = p_output2.readLine();
+	    			System.out.println("role whereami ->"+whereami);
+	    			
+	    			
+	    			//END TEST
 				    String assumeRolefileLocation = "./assumeRole.json";
 		    		FileReader reader = new FileReader(assumeRolefileLocation);
 		            JSONParser jsonParser = new JSONParser();
